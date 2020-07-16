@@ -925,6 +925,10 @@ def check_signable_object_format(signable):
     raise securesystemslib.exceptions.FormatError('Unrecognized'
       ' type ' + repr(role_type))
 
+  if not signable['signatures']:
+    raise securesystemslib.exceptions.FormatError('Signable object of type ' +
+        repr(role_type) + ' has no signatures ')
+
   # 'securesystemslib.exceptions.FormatError' raised if 'signable' does not
   # have a properly formatted role schema.
   schema.check_match(signable['signed'])

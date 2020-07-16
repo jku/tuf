@@ -1764,6 +1764,10 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   # keyid of 'keyids'.
   signable = tuf.formats.make_signable(metadata_object)
 
+  if not keyids:
+    raise tuf.exceptions.UnsignedMetadataError('No signing keyids found for ' +
+        repr(filename), signable)
+
   # Sign the metadata with each keyid in 'keyids'.  'signable' should have
   # zero signatures (metadata_object contained none).
   for keyid in keyids:
