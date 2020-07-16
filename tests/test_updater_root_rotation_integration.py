@@ -311,40 +311,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_root_rotation_missing_keys(self):
     repository = repo_tool.load_repository(self.repository_directory)
 
-    # A partially written root.json (threshold = 2, and signed with only 1 key)
-    # causes an invalid root chain later.
+    # Increase threshold, but don't add any keys
     repository.root.threshold = 2
     repository.root.load_signing_key(self.role_keys['root']['private'])
-    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
-    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-
     repository.write('root')
-    repository.write('snapshot')
-    repository.write('timestamp')
 
-    # Move the staged metadata to the "live" metadata.
-    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
-    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
-                    os.path.join(self.repository_directory, 'metadata'))
-
-    # Create a new, valid root.json.
-    # Still not valid, because it is not written with a threshold of 2
-    # previous keys
-    repository.root.threshold = 2
-    repository.root.add_verification_key(self.role_keys['role1']['public'])
-    repository.root.load_signing_key(self.role_keys['root']['private'])
-    repository.root.load_signing_key(self.role_keys['role1']['private'])
-
-    # repository.writeall()
-    # has to be partially signed again
+    # This fails to update because there's only one signature
     repository.write('root')
-    repository.write('snapshot')
-    repository.write('timestamp')
-
-    repository.root.add_verification_key(self.role_keys['snapshot']['public'])
-    repository.root.load_signing_key(self.role_keys['snapshot']['private'])
-    repository.root.threshold = 3
-    repository.writeall()
 
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -353,14 +326,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     try:
       self.repository_updater.refresh()
-
+      self.fail("refresh() succeeded when BadSignatureError was expected")
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', '2.root.json')
 
-        # Verify that '2.root.json' is the culprit.
-        self.assertEqual(url_file.replace('\\', '/'), mirror_url)
+        # Verify that '3.root.json' is the culprit.
+        self.assertTrue(mirror_url.endswith("3.root.json"))
         self.assertTrue(isinstance(mirror_error,
           securesystemslib.exceptions.BadSignatureError))
 
