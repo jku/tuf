@@ -56,8 +56,10 @@ import copy
 import tempfile
 import logging
 import random
+import socket
 import subprocess
 import sys
+import time
 import errno
 import unittest
 
@@ -78,6 +80,28 @@ import six
 logger = logging.getLogger(__name__)
 repo_tool.disable_console_log_messages()
 
+# Wait until host:port accepts connections: This can mean receiving data or
+# more typically BlockingIOError.
+# Raises TimeoutError if this does not happen within timeout seconds
+# TODO move this to a utils file so it can be used in other files as well
+def wait_for_socket(host, port, timeout):
+  start = time.time()
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    while time.time() - start < timeout:
+      try:
+        sock.connect((host, port))
+        data = sock.recv(1, socket.MSG_DONTWAIT | socket.MSG_PEEK)
+        if len(data) > 0:
+          return
+      except BlockingIOError:
+        return
+      except ConnectionRefusedError:
+        # this is expected when the service has not yet started
+        pass
+      except Error as e:
+        logger.warning("Unexpected error while waiting for socket: %s", str(e))
+
+  raise TimeoutError
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
 
@@ -117,7 +141,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #     Failed to establish a new connection: [Errno 111] Connection refused'
     # While 0.3s has consistently worked on Travis and local builds, it led to
     # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    wait_for_socket('localhost', cls.SERVER_PORT, 3)
 
 
 
@@ -130,11 +154,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     if cls.server_process.returncode is None:
       logger.info('\tServer process ' + str(cls.server_process.pid) + ' terminated.')
       cls.server_process.kill()
+      cls.server_process.communicate()
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated for the test cases.  sleep
-    # for a bit to allow the kill'd server process to terminate.
-    time.sleep(.3)
     shutil.rmtree(cls.temporary_directory)
 
 
@@ -1107,7 +1128,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Failed to establish a new connection: [Errno 111] Connection refused'
     # While 0.3s has consistently worked on Travis and local builds, it led to
     # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    wait_for_socket('localhost', SERVER_PORT, 3)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1231,6 +1252,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         '/foo/foo1.1.tar.gz')
 
     server_process.kill()
+    server_process.communicate()
 
 
 
@@ -1376,7 +1398,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #     Failed to establish a new connection: [Errno 111] Connection refused'
     # While 0.3s has consistently worked on Travis and local builds, it led to
     # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    wait_for_socket('localhost', SERVER_PORT, 3)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1488,6 +1510,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(updated_targets), 1)
 
     server_process.kill()
+    server_process.communicate()
 
 
 
@@ -1508,7 +1531,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #     Failed to establish a new connection: [Errno 111] Connection refused'
     # While 0.3s has consistently worked on Travis and local builds, it led to
     # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    wait_for_socket('localhost', SERVER_PORT, 3)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -1597,6 +1620,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.remove_obsolete_targets(destination_directory)
 
     server_process.kill()
+    server_process.communicate()
 
 
 
@@ -1913,7 +1937,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     #     Failed to establish a new connection: [Errno 111] Connection refused'
     # While 0.3s has consistently worked on Travis and local builds, it led to
     # occasional failures in AppVeyor builds, so increasing this to 2s, sadly.
-    time.sleep(2)
+    wait_for_socket('localhost', self.SERVER_PORT, 3)
+    wait_for_socket('localhost', self.SERVER_PORT2, 3)
 
     url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
     url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
@@ -1953,19 +1978,17 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     if self.server_process.returncode is None:
       logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
       self.server_process.kill()
+      self.server_process.communicate()
 
     if self.server_process2.returncode is None:
       logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
       self.server_process2.kill()
+      self.server_process2.communicate()
 
     # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated of all the test cases.  sleep
-    # for a bit to allow the kill'd server processes to terminate.
-    time.sleep(.3)
     shutil.rmtree(self.temporary_directory)
 
 
