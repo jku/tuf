@@ -39,6 +39,8 @@ import unittest
 import glob
 import random
 
+import utils
+
 # Generate a list of pathnames that match a pattern (i.e., that begin with
 # 'test_' and end with '.py'.  A shell-style wildcard is used with glob() to
 # match desired filenames.  All the tests matching the pattern will be loaded
@@ -90,6 +92,7 @@ for test in available_tests:
 random.shuffle(test_modules_to_run)
 
 if __name__ == '__main__':
+  utils.configure_test_logging(sys.argv)
   suite = unittest.TestLoader().loadTestsFromNames(test_modules_to_run)
   all_tests_passed = unittest.TextTestRunner(
       verbosity=1, buffer=True).run(suite).wasSuccessful()

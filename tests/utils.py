@@ -24,11 +24,28 @@ import argparse
 import errno
 import logging
 import socket
+import sys
 import time
 
 import tuf.log
 
 logger = logging.getLogger(__name__)
+
+# Logging handler that always checks sys.stderr value when it needs the stream:
+# the default handler caches the sys.stderr value and that breaks TextTestRunner
+# buffering (it redirects stderr to a new file object for each individual test)
+class TestLogHandler(logging.StreamHandler):
+  def __init__(self):
+    super(logging.StreamHandler, self).__init__()
+
+  @property
+  def stream(self):
+    return sys.stderr
+
+  @stream.setter
+  def stream(self, value):
+    pass
+
 
 try:
   # is defined in Python 3
@@ -95,5 +112,5 @@ def configure_test_logging(argv):
   else:
     loglevel = logging.DEBUG
 
-  logging.basicConfig()
+  logging.basicConfig(handlers=[TestLogHandler()])
   tuf.log.set_log_level(loglevel)
