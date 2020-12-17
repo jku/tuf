@@ -54,7 +54,9 @@ jobs:
 
       - name: Find tox cache dir
         id: tox-cache
-        run: echo "::set-output name=dir::$(tox --showconfig | sed -n -e 's/toxworkdir = //p')"
+        run: |
+          echo "$(tox --showconfig | sed -n -e 's/toxworkdir = //p')"
+          echo "::set-output name=dir::$(tox --showconfig | sed -n -e 's/toxworkdir = //p')"
 
       - name: Tox cache
         uses: actions/cache@v2
@@ -64,4 +66,4 @@ jobs:
           # restore-keys not used on purpose: we want to use an existing cache only if there are no changes
 
       - name: Run tox
-        run: tox -e ${{ matrix.toxenv }}
+        run: tox -v -v -e ${{ matrix.toxenv }}
