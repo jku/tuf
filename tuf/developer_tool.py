@@ -42,9 +42,9 @@ import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import keydb
+from tuf import log
 import tuf.roledb
 import tuf.sig
-import tuf.log
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool
 

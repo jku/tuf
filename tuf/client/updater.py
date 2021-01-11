@@ -134,8 +134,8 @@ from tuf import download
 from tuf import exceptions
 from tuf import formats
 from tuf import keydb
+from tuf import log
 import tuf.settings
-import tuf.log
 import tuf.mirrors
 import tuf.roledb
 import tuf.sig
