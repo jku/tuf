@@ -136,8 +136,8 @@ from tuf import formats
 from tuf import keydb
 from tuf import log
 from tuf import mirrors
+from tuf import roledb
 import tuf.settings
-import tuf.roledb
 import tuf.sig
 
 import securesystemslib.exceptions
@@ -754,7 +754,7 @@ class Updater(object):
 
     # Load current and previous metadata.
     for metadata_set in ['current', 'previous']:
-      for metadata_role in tuf.roledb.TOP_LEVEL_ROLES:
+      for metadata_role in roledb.TOP_LEVEL_ROLES:
         self._load_metadata_from_file(metadata_set, metadata_role)
 
     # Raise an exception if the repository is missing the required 'root'
@@ -901,7 +901,7 @@ class Updater(object):
     keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
 
-    tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
+    roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
 
 
@@ -970,11 +970,11 @@ class Updater(object):
     # Add the roles to the role database.
     for roleinfo in roles_info:
       try:
-        # NOTE: tuf.roledb.add_role will take care of the case where rolename
+        # NOTE: roledb.add_role will take care of the case where rolename
         # is None.
         rolename = roleinfo.get('name')
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
-        tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
+        roledb.add_role(rolename, roleinfo, self.repository_name)
 
       except exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
@@ -2225,7 +2225,7 @@ class Updater(object):
     # Remove knowledge of the role.
     if metadata_role in self.metadata['current']:
       del self.metadata['current'][metadata_role]
-    tuf.roledb.remove_role(metadata_role, self.repository_name)
+    roledb.remove_role(metadata_role, self.repository_name)
 
 
 
@@ -2329,8 +2329,8 @@ class Updater(object):
     # Fetch the targets of the delegated roles.  get_rolenames returns
     # all roles available on the repository.
     delegated_targets = []
-    for role in tuf.roledb.get_rolenames(self.repository_name):
-      if role in tuf.roledb.TOP_LEVEL_ROLES:
+    for role in roledb.get_rolenames(self.repository_name):
+      if role in roledb.TOP_LEVEL_ROLES:
         continue
 
       else:
@@ -2465,7 +2465,7 @@ class Updater(object):
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
-    if not tuf.roledb.role_exists(rolename, self.repository_name):
+    if not roledb.role_exists(rolename, self.repository_name):
       raise exceptions.UnknownRoleError(rolename)
 
     # We do not need to worry about the target paths being trusted because
@@ -2567,7 +2567,7 @@ class Updater(object):
       self._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
 
-    if not tuf.roledb.role_exists(rolename, self.repository_name):
+    if not roledb.role_exists(rolename, self.repository_name):
       raise exceptions.UnknownRoleError(rolename)
 
     return self._targets_of_role(rolename, skip_refresh=True)
@@ -2961,7 +2961,7 @@ class Updater(object):
 
     # Iterate the rolenames and verify whether the 'previous' directory
     # contains a target no longer found in 'current'.
-    for role in tuf.roledb.get_rolenames(self.repository_name):
+    for role in roledb.get_rolenames(self.repository_name):
       if role.startswith('targets'):
         if role in self.metadata['previous'] and self.metadata['previous'][role] != None:
           for target in self.metadata['previous'][role]['targets']:
