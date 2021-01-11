@@ -132,8 +132,8 @@ import warnings
 import tuf
 from tuf import download
 from tuf import exceptions
+from tuf import formats
 import tuf.requests_fetcher
-import tuf.formats
 import tuf.settings
 import tuf.keydb
 import tuf.log
@@ -211,7 +211,7 @@ class MultiRepoUpdater(object):
 
     # Raise securesystemslib.exceptions.FormatError if the map file is
     # improperly formatted.
-    tuf.formats.MAPFILE_SCHEMA.check_match(self.map_file)
+    formats.MAPFILE_SCHEMA.check_match(self.map_file)
 
     # Save the "repositories" entry of the map file, with the following
     # example format:
@@ -262,11 +262,11 @@ class MultiRepoUpdater(object):
 
     # Is the argument properly formatted?  If not, raise
     # 'tuf.exceptions.FormatError'.
-    tuf.formats.RELPATH_SCHEMA.check_match(target_filename)
+    formats.RELPATH_SCHEMA.check_match(target_filename)
 
     # TAP 4 requires that the following attributes be present in mappings:
     # "paths", "repositories", "terminating", and "threshold".
-    tuf.formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
+    formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
 
     # Set the top-level directory containing the metadata for each repository.
     repositories_directory = tuf.settings.repositories_directory
@@ -485,7 +485,7 @@ class MultiRepoUpdater(object):
 
     # Are the arguments properly formatted?  If not, raise
     # 'tuf.exceptions.FormatError'.
-    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+    formats.NAME_SCHEMA.check_match(repository_name)
 
     updater = self.repository_names_to_updaters.get(repository_name)
 
@@ -687,7 +687,7 @@ class Updater(object):
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mistmatch.
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
-    tuf.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
+    formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
 
     # Save the validated arguments.
     self.repository_name = repository_name
@@ -851,7 +851,7 @@ class Updater(object):
       except securesystemslib.exceptions.Error:
         return
 
-      tuf.formats.check_signable_object_format(metadata_signable)
+      formats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -1440,7 +1440,7 @@ class Updater(object):
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'securesystemslib.exceptions.FormatError' if not.
-      tuf.formats.check_signable_object_format(metadata_signable)
+      formats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
@@ -2010,7 +2010,7 @@ class Updater(object):
       # client's copy of snapshot.json.
       try:
         timestamp_version_number = self.metadata['current']['snapshot']['version']
-        trusted_versioninfo = tuf.formats.make_versioninfo(
+        trusted_versioninfo = formats.make_versioninfo(
             timestamp_version_number)
 
       except KeyError:
@@ -2026,7 +2026,7 @@ class Updater(object):
         targets_version_number = \
           self.metadata['current'][metadata_filename[:-len('.json')]]['version']
         trusted_versioninfo = \
-          tuf.formats.make_versioninfo(targets_version_number)
+          formats.make_versioninfo(targets_version_number)
 
       except KeyError:
         trusted_versioninfo = \
@@ -2153,7 +2153,7 @@ class Updater(object):
     # to the fileinfo store.
     file_length, hashes = securesystemslib.util.get_file_details(
         current_filepath)
-    metadata_fileinfo = tuf.formats.make_targets_fileinfo(file_length, hashes)
+    metadata_fileinfo = formats.make_targets_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
 
@@ -2274,9 +2274,9 @@ class Updater(object):
     # Extract the expiration time. Convert it to a unix timestamp and compare it
     # against the current time.time() (also in Unix/POSIX time format, although
     # with microseconds attached.)
-    expires_datetime = tuf.formats.expiry_string_to_datetime(
+    expires_datetime = formats.expiry_string_to_datetime(
         metadata_object['expires'])
-    expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
+    expires_timestamp = formats.datetime_to_unix_timestamp(expires_datetime)
 
     current_time = int(time.time())
     if expires_timestamp <= current_time:
@@ -2558,7 +2558,7 @@ class Updater(object):
 
     # Does 'rolename' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(rolename)
+    formats.RELPATH_SCHEMA.check_match(rolename)
 
     # If we've been given a delegated targets role, we don't know how to
     # validate it without knowing what the delegating role is -- there could
@@ -2624,7 +2624,7 @@ class Updater(object):
 
     # Does 'target_filepath' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+    formats.RELPATH_SCHEMA.check_match(target_filepath)
 
     target_filepath = target_filepath.replace('\\', '/')
 
@@ -3059,7 +3059,7 @@ class Updater(object):
 
     # Do the arguments have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    tuf.formats.TARGETINFOS_SCHEMA.check_match(targets)
+    formats.TARGETINFOS_SCHEMA.check_match(targets)
     securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
@@ -3157,7 +3157,7 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
-    tuf.formats.TARGETINFO_SCHEMA.check_match(target)
+    formats.TARGETINFO_SCHEMA.check_match(target)
     securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.
