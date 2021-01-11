@@ -46,7 +46,6 @@ from tuf import log
 import tuf.roledb
 import tuf.sig
 import tuf.repository_lib as repo_lib
-import tuf.repository_tool
 
 import securesystemslib
 import securesystemslib.util
