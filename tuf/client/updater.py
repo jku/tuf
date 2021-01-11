@@ -133,8 +133,8 @@ import tuf
 from tuf import download
 from tuf import exceptions
 from tuf import formats
+from tuf import keydb
 import tuf.settings
-import tuf.keydb
 import tuf.log
 import tuf.mirrors
 import tuf.roledb
@@ -898,7 +898,7 @@ class Updater(object):
     # metadata files for delegated roles are also not loaded when the
     # repository is first instantiated.  Due to this setup, reloading delegated
     # roles is not required here.
-    tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
+    keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
         self.repository_name)
 
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
@@ -953,7 +953,7 @@ class Updater(object):
         try:
           key, _ = securesystemslib.keys.format_metadata_to_key(keyinfo, keyid)
 
-          tuf.keydb.add_key(key, repository_name=self.repository_name)
+          keydb.add_key(key, repository_name=self.repository_name)
 
         except exceptions.KeyAlreadyExistsError:
           pass

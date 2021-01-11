@@ -41,7 +41,7 @@ import json
 import tuf
 from tuf import exceptions
 from tuf import formats
-import tuf.keydb
+from tuf import keydb
 import tuf.roledb
 import tuf.sig
 import tuf.log

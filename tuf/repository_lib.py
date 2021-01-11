@@ -42,7 +42,7 @@ import tempfile
 import tuf
 from tuf import exceptions
 from tuf import formats
-import tuf.keydb
+from tuf import keydb
 import tuf.roledb
 import tuf.sig
 import tuf.log
@@ -339,7 +339,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
     # Remove 'signature' from 'signable' if the listed keyid does not exist
     # in 'tuf.keydb'.
     try:
-      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+      key = keydb.get_key(keyid, repository_name=repository_name)
 
     except exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
@@ -507,7 +507,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       logger.warning('Unsigned metadata object: ' + repr(signable))
 
     root_metadata = signable['signed']
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
+    keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
 
     # Load Root's roleinfo and update 'tuf.roledb'.
@@ -673,7 +673,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       # repository maintainer should have also been made aware of the duplicate
       # key when it was added.
       try:
-        tuf.keydb.add_key(key_object, keyid=None, repository_name=repository_name)
+        keydb.add_key(key_object, keyid=None, repository_name=repository_name)
 
       except exceptions.KeyAlreadyExistsError:
         pass
@@ -1262,7 +1262,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     # Collect keys from all roles in a list
     keyids = tuf.roledb.get_role_keyids(rolename, repository_name)
     for keyid in keyids:
-      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+      key = keydb.get_key(keyid, repository_name=repository_name)
       keylist.append(key)
 
     # Generate the authentication information Root establishes for each
@@ -1413,7 +1413,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
       # Collect all delegations keys for generating the delegations keydict
       for keyid in role['keyids']:
-        key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+        key = keydb.get_key(keyid, repository_name=repository_name)
         delegations_keys.append(key)
 
     _, delegations['keys'] = keys_to_keydict(delegations_keys)
@@ -1854,7 +1854,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   for keyid in keyids:
 
     # Load the signing key.
-    key = tuf.keydb.get_key(keyid, repository_name=repository_name)
+    key = keydb.get_key(keyid, repository_name=repository_name)
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
