@@ -21,8 +21,8 @@ from securesystemslib.util import (
 from securesystemslib.storage import StorageBackendInterface
 from securesystemslib.keys import create_signature, verify_signature
 
+from tuf import exceptions
 import tuf.formats
-import tuf.exceptions
 
 
 # Types
@@ -235,11 +235,11 @@ class Metadata():
                 lambda sig: sig['keyid'] == key['keyid'], self.signatures))
 
         if not signatures_for_keyid:
-            raise tuf.exceptions.Error(
+            raise exceptions.Error(
                     f'no signature for key {key["keyid"]}.')
 
         if len(signatures_for_keyid) > 1:
-            raise tuf.exceptions.Error(
+            raise exceptions.Error(
                     f'{len(signatures_for_keyid)} signatures for key '
                     f'{key["keyid"]}, not sure which one to verify.')
 
