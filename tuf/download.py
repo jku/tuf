@@ -43,7 +43,7 @@ import securesystemslib
 import securesystemslib.util
 import six
 
-import tuf.exceptions
+from tuf import exceptions
 import tuf.formats
 
 import urllib3.exceptions
@@ -216,7 +216,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     parsed_url = six.moves.urllib.parse.urlparse(url)
 
     if not parsed_url.scheme or not parsed_url.hostname:
-      raise tuf.exceptions.URLParsingError(
+      raise exceptions.URLParsingError(
           'Could not get scheme and hostname from URL: ' + url)
 
     session_index = parsed_url.scheme + '+' + parsed_url.hostname
@@ -375,7 +375,7 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
         break
 
   except urllib3.exceptions.ReadTimeoutError as e:
-    raise tuf.exceptions.SlowRetrievalError(str(e))
+    raise exceptions.SlowRetrievalError(str(e))
 
   return number_of_bytes_received, average_download_speed
 
@@ -445,13 +445,13 @@ def _check_downloaded_length(total_downloaded, required_length,
       logger.debug('Minimum average download speed: ' + repr(tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED))
 
       if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+        raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
 
-      raise tuf.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
 
     else:
       # We specifically disabled strict checking of required length, but we
@@ -459,7 +459,7 @@ def _check_downloaded_length(total_downloaded, required_length,
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
       if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.exceptions.SlowRetrievalError(average_download_speed)
+        raise exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
