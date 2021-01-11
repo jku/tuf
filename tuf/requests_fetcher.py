@@ -13,7 +13,7 @@ import time
 
 import urllib3.exceptions
 
-import tuf.exceptions
+from tuf import exceptions
 import tuf.settings
 
 from tuf.client.fetcher import FetcherInterface
@@ -80,7 +80,7 @@ class RequestsFetcher(FetcherInterface):
       response.raise_for_status()
     except requests.HTTPError as e:
       status = e.response.status_code
-      raise tuf.exceptions.FetcherHTTPError(str(e), status)
+      raise exceptions.FetcherHTTPError(str(e), status)
 
 
     # Define a generator function to be returned by fetch. This way the caller
@@ -121,7 +121,7 @@ class RequestsFetcher(FetcherInterface):
             break
 
       except urllib3.exceptions.ReadTimeoutError as e:
-        raise tuf.exceptions.SlowRetrievalError(str(e))
+        raise exceptions.SlowRetrievalError(str(e))
 
       finally:
         response.close()
@@ -139,7 +139,7 @@ class RequestsFetcher(FetcherInterface):
     parsed_url = six.moves.urllib.parse.urlparse(url)
 
     if not parsed_url.scheme or not parsed_url.hostname:
-      raise tuf.exceptions.URLParsingError(
+      raise exceptions.URLParsingError(
           'Could not get scheme and hostname from URL: ' + url)
 
     session_index = parsed_url.scheme + '+' + parsed_url.hostname

@@ -129,6 +129,8 @@ import fnmatch
 import copy
 import warnings
 
+from securesystemslib import exceptions as sslib_exceptions
+
 import tuf
 from tuf import download
 from tuf import exceptions
@@ -141,7 +143,6 @@ from tuf import sig
 import tuf.requests_fetcher
 import tuf.keydb
 
-import securesystemslib.exceptions
 import securesystemslib.hash
 import securesystemslib.keys
 import securesystemslib.util
@@ -206,7 +207,7 @@ class MultiRepoUpdater(object):
       # The map file dictionary that associates targets with repositories.
       self.map_file = securesystemslib.util.load_json_file(map_file)
 
-    except (securesystemslib.exceptions.Error) as e:
+    except (sslib_exceptions.Error) as e:
       raise exceptions.Error('Cannot load the map file: ' + str(e))
 
     # Raise securesystemslib.exceptions.FormatError if the map file is
@@ -828,7 +829,7 @@ class Updater(object):
 
     # Ensure we have a valid metadata set.
     if metadata_set not in ['current', 'previous']:
-      raise securesystemslib.exceptions.Error(
+      raise sslib_exceptions.Error(
           'Invalid metadata set: ' + repr(metadata_set))
 
     # Save and construct the full metadata path.
@@ -848,7 +849,7 @@ class Updater(object):
       # be a valid json file.  On the next refresh cycle, it will be
       # updated as required.  If Root if cannot be loaded from disk
       # successfully, an exception should be raised by the caller.
-      except securesystemslib.exceptions.Error:
+      except sslib_exceptions.Error:
         return
 
       formats.check_signable_object_format(metadata_signable)
@@ -970,7 +971,7 @@ class Updater(object):
         except exceptions.KeyAlreadyExistsError:
           pass
 
-        except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.Error):
+        except (sslib_exceptions.FormatError, sslib_exceptions.Error):
           logger.warning('Invalid key: ' + repr(keyid) + '. Aborting role ' +
               'delegation for parent role \'' + parent_role + '\'.')
           raise
@@ -1208,7 +1209,7 @@ class Updater(object):
       computed_hash = digest_object.hexdigest()
 
       if trusted_hash != computed_hash:
-        raise securesystemslib.exceptions.BadHashError(trusted_hash,
+        raise sslib_exceptions.BadHashError(trusted_hash,
             computed_hash)
 
       else:
@@ -1454,7 +1455,7 @@ class Updater(object):
         self.repository_name)
 
     if not valid:
-      raise securesystemslib.exceptions.BadSignatureError(metadata_role)
+      raise sslib_exceptions.BadSignatureError(metadata_role)
 
     # For root metadata, verify the downloaded root metadata object with the
     # new threshold of new signatures contained within the downloaded root
@@ -1468,7 +1469,7 @@ class Updater(object):
     if valid and metadata_role == 'root':
       valid = self._verify_root_self_signed(metadata_signable)
       if not valid:
-        raise securesystemslib.exceptions.BadSignatureError(metadata_role)
+        raise sslib_exceptions.BadSignatureError(metadata_role)
 
 
 
@@ -1564,7 +1565,7 @@ class Updater(object):
                 ". The update will continue as the major versions match.")
 
         except (ValueError, TypeError) as error:
-          six.raise_from(securesystemslib.exceptions.FormatError('Improperly'
+          six.raise_from(sslib_exceptions.FormatError('Improperly'
               ' formatted spec_version, which must be in major.minor.fix format'),
               error)
 
@@ -2891,7 +2892,7 @@ class Updater(object):
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' '
+      raise sslib_exceptions.FormatError(repr(child_role_name) + ' '
           'has neither a "paths" nor "path_hash_prefixes".  At least'
           ' one of these attributes must be present.')
 
@@ -3091,7 +3092,7 @@ class Updater(object):
             algorithm=algorithm)
 
         # This exception would occur if the target does not exist locally.
-        except securesystemslib.exceptions.StorageError:
+        except sslib_exceptions.StorageError:
           updated_targets.append(target)
           updated_targetpaths.append(target_filepath)
           break
