@@ -149,8 +149,8 @@ import fnmatch
 
 import tuf
 from tuf import exceptions
+from tuf import formats
 import tuf.log
-import tuf.formats
 import tuf.repository_tool as repo_tool
 
 # 'pip install securesystemslib[crypto,pynacl]' is required for the CLI,
