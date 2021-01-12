@@ -41,7 +41,6 @@ import requests
 
 import securesystemslib
 from securesystemslib import formats as sslib_formats
-import securesystemslib.util
 import six
 
 from tuf import exceptions
