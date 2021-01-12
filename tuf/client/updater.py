@@ -512,7 +512,7 @@ class MultiRepoUpdater(object):
           # NOTE: State (e.g., keys) should NOT be shared across different
           # updater instances.
           logger.debug('Adding updater for ' + repr(repository_name))
-          updater = tuf.client.updater.Updater(repository_name, repo_mirrors)
+          updater = Updater(repository_name, repo_mirrors)
 
         except Exception:
           return None
