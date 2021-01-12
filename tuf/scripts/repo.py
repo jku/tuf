@@ -631,7 +631,7 @@ def sign_role(parsed_arguments):
             role_privatekey, repository_name = repository._repository_name)
 
         # Set the delegated metadata file to expire in 3 months.
-        expiration = tuf.formats.unix_timestamp_to_datetime(
+        expiration = formats.unix_timestamp_to_datetime(
             int(time.time() + 7889230))
         expiration = expiration.isoformat() + 'Z'
 
