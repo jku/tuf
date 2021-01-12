@@ -133,6 +133,7 @@ import warnings
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import keys as sslib_keys
+from securesystemslib import util as sslib_util
 
 import tuf
 from tuf import download
@@ -146,7 +147,6 @@ from tuf import settings
 from tuf import sig
 
 import securesystemslib.hash
-import securesystemslib.util
 import six
 import requests.exceptions
 
@@ -207,7 +207,7 @@ class MultiRepoUpdater(object):
 
     try:
       # The map file dictionary that associates targets with repositories.
-      self.map_file = securesystemslib.util.load_json_file(map_file)
+      self.map_file = sslib_util.load_json_file(map_file)
 
     except (sslib_exceptions.Error) as e:
       raise exceptions.Error('Cannot load the map file: ' + str(e))
@@ -832,7 +832,7 @@ class Updater(object):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
       try:
-        metadata_signable = securesystemslib.util.load_json_file(
+        metadata_signable = sslib_util.load_json_file(
             metadata_filepath)
 
       # Although the metadata file may exist locally, it may not
@@ -1422,7 +1422,7 @@ class Updater(object):
     metadata = metadata_file_object.read().decode('utf-8')
 
     try:
-      metadata_signable = securesystemslib.util.load_json_string(metadata)
+      metadata_signable = sslib_util.load_json_string(metadata)
 
     except Exception as exception:
       raise exceptions.InvalidMetadataJSONError(exception)
@@ -1519,7 +1519,7 @@ class Updater(object):
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
         metadata_signable = \
-          securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
+          sslib_util.load_json_string(file_object.read().decode('utf-8'))
 
         # Determine if the specification version number is supported.  It is
         # assumed that "spec_version" is in (major.minor.fix) format, (for
@@ -1694,7 +1694,7 @@ class Updater(object):
     current_filepath = os.path.join(self.metadata_directory['current'],
                 metadata_filename)
     current_filepath = os.path.abspath(current_filepath)
-    securesystemslib.util.ensure_parent_dir(current_filepath)
+    sslib_util.ensure_parent_dir(current_filepath)
 
     previous_filepath = os.path.join(self.metadata_directory['previous'],
         metadata_filename)
@@ -1702,15 +1702,15 @@ class Updater(object):
 
     if os.path.exists(current_filepath):
       # Previous metadata might not exist, say when delegations are added.
-      securesystemslib.util.ensure_parent_dir(previous_filepath)
+      sslib_util.ensure_parent_dir(previous_filepath)
       shutil.move(current_filepath, previous_filepath)
 
     # Next, move the verified updated metadata file to the 'current' directory.
     metadata_file_object.seek(0)
     metadata_signable = \
-      securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+      sslib_util.load_json_string(metadata_file_object.read().decode('utf-8'))
 
-    securesystemslib.util.persist_temp_file(metadata_file_object, current_filepath)
+    sslib_util.persist_temp_file(metadata_file_object, current_filepath)
 
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
@@ -2141,7 +2141,7 @@ class Updater(object):
 
     # Extract the file information from the actual file and save it
     # to the fileinfo store.
-    file_length, hashes = securesystemslib.util.get_file_details(
+    file_length, hashes = sslib_util.get_file_details(
         current_filepath)
     metadata_fileinfo = formats.make_targets_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
@@ -2187,7 +2187,7 @@ class Updater(object):
 
     # Move the current path to the previous path.
     if os.path.exists(current_filepath):
-      securesystemslib.util.ensure_parent_dir(previous_filepath)
+      sslib_util.ensure_parent_dir(previous_filepath)
       os.rename(current_filepath, previous_filepath)
 
 
@@ -3183,4 +3183,4 @@ class Updater(object):
     target_file_object = self._get_target_file(target_filepath, trusted_length,
         trusted_hashes, prefix_filename_with_hash)
 
-    securesystemslib.util.persist_temp_file(target_file_object, destination)
+    sslib_util.persist_temp_file(target_file_object, destination)
