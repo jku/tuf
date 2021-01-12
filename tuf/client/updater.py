@@ -131,6 +131,7 @@ import copy
 import warnings
 
 from securesystemslib import exceptions as sslib_exceptions
+from securesystemslib import formats as sslib_formats
 
 import tuf
 from tuf import download
@@ -199,7 +200,7 @@ class MultiRepoUpdater(object):
     # Is 'map_file' a path?  If not, raise
     # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
     # file is validated later on in this method.
-    securesystemslib.formats.PATH_SCHEMA.check_match(map_file)
+    sslib_formats.PATH_SCHEMA.check_match(map_file)
 
     # A dictionary mapping repositories to TUF updaters.
     self.repository_names_to_updaters = {}
@@ -688,7 +689,7 @@ class Updater(object):
     # number of objects and object types and that all dict
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mistmatch.
-    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    sslib_formats.NAME_SCHEMA.check_match(repository_name)
     formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
 
     # Save the validated arguments.
@@ -1051,7 +1052,7 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(
+    sslib_formats.BOOLEAN_SCHEMA.check_match(
         unsafely_update_root_if_necessary)
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
@@ -1359,7 +1360,7 @@ class Updater(object):
     keyids = signable['signed']['roles']['root']['keyids']
     keys = signable['signed']['keys']
     signatures = signable['signatures']
-    signed = securesystemslib.formats.encode_canonical(
+    signed = sslib_formats.encode_canonical(
         signable['signed']).encode('utf-8')
     verified_sig_keyids = set()
 
@@ -2972,7 +2973,7 @@ class Updater(object):
 
     # Does 'destination_directory' have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
+    sslib_formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Iterate the rolenames and verify whether the 'previous' directory
     # contains a target no longer found in 'current'.
@@ -3062,7 +3063,7 @@ class Updater(object):
     # Do the arguments have the correct format?
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     formats.TARGETINFOS_SCHEMA.check_match(targets)
-    securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
+    sslib_formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
     # Return 'updated_targets' and use 'updated_targetpaths' to avoid
@@ -3160,7 +3161,7 @@ class Updater(object):
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
     formats.TARGETINFO_SCHEMA.check_match(target)
-    securesystemslib.formats.PATH_SCHEMA.check_match(destination_directory)
+    sslib_formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.
     target_filepath = target['filepath']
