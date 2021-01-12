@@ -35,19 +35,17 @@ import logging
 import time
 import timeit
 import tempfile
-
-import tuf
 import requests
+import six
+from urllib3.exceptions import ReadTimeoutError
 
 import securesystemslib
 from securesystemslib import formats as sslib_formats
-import six
 
+import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import settings
-
-import urllib3.exceptions
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger(__name__)
@@ -375,7 +373,7 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
         # Finally, we signal that the download is complete.
         break
 
-  except urllib3.exceptions.ReadTimeoutError as e:
+  except ReadTimeoutError as e:
     raise exceptions.SlowRetrievalError(str(e))
 
   return number_of_bytes_received, average_download_speed
