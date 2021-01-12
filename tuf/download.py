@@ -39,7 +39,7 @@ import requests
 import six
 from urllib3.exceptions import ReadTimeoutError
 
-import securesystemslib
+import securesystemslib # pylint: disable=unused-import
 from securesystemslib import formats as sslib_formats
 
 import tuf
