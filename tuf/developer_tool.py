@@ -40,17 +40,16 @@ import json
 import six
 
 
-import securesystemslib
+import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
 from securesystemslib import storage as sslib_storage
 from securesystemslib import util as sslib_util
 
-import tuf
 from tuf import exceptions
 from tuf import formats
 from tuf import keydb
-from tuf import log
+from tuf import log # pylint: disable=unused-import
 from tuf import repository_lib as repo_lib
 from tuf import roledb
 from tuf import sig
