@@ -128,7 +128,10 @@ import shutil
 import time
 import fnmatch
 import copy
+from requests.exceptions import HTTPError
+import six
 import warnings
+
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
@@ -146,9 +149,6 @@ from tuf import mirrors
 from tuf import roledb
 from tuf import settings
 from tuf import sig
-
-import six
-import requests.exceptions
 
 # The Timestamp role does not have signed metadata about it; otherwise we
 # would need an infinite regress of metadata. Therefore, we use some
@@ -1115,7 +1115,7 @@ class Updater(object):
     """
 
     def neither_403_nor_404(mirror_error):
-      if isinstance(mirror_error, requests.exceptions.HTTPError):
+      if isinstance(mirror_error, HTTPError):
         if mirror_error.response.status_code in {403, 404}:
           return False
       return True
