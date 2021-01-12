@@ -132,6 +132,7 @@ import warnings
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import keys as sslib_keys
 
 import tuf
 from tuf import download
@@ -145,7 +146,6 @@ from tuf import settings
 from tuf import sig
 
 import securesystemslib.hash
-import securesystemslib.keys
 import securesystemslib.util
 import six
 import requests.exceptions
@@ -954,7 +954,7 @@ class Updater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          key, _ = securesystemslib.keys.format_metadata_to_key(keyinfo, keyid)
+          key, _ = sslib_keys.format_metadata_to_key(keyinfo, keyid)
 
           keydb.add_key(key, repository_name=self.repository_name)
 
@@ -1364,7 +1364,7 @@ class Updater(object):
       # The ANYKEY_SCHEMA check in verify_signature expects the keydict to
       # include a keyid
       key['keyid'] = keyid
-      valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
+      valid_sig = sslib_keys.verify_signature(key, signature, signed)
 
       if valid_sig:
         verified_sig_keyids.add(keyid)
