@@ -131,6 +131,7 @@ import warnings
 
 from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import formats as sslib_formats
+from securesystemslib import hash as sslib_hash
 from securesystemslib import keys as sslib_keys
 from securesystemslib import util as sslib_util
 
@@ -145,7 +146,6 @@ from tuf import roledb
 from tuf import settings
 from tuf import sig
 
-import securesystemslib.hash
 import six
 import requests.exceptions
 
@@ -1193,7 +1193,7 @@ class Updater(object):
 
     # Verify each hash, raise an exception if any hash fails to verify
     for algorithm, trusted_hash in six.iteritems(trusted_hashes):
-      digest_object = securesystemslib.hash.digest_fileobject(file_object,
+      digest_object = sslib_hash.digest_fileobject(file_object,
           algorithm)
       computed_hash = digest_object.hexdigest()
 
@@ -2921,7 +2921,7 @@ class Updater(object):
     # Calculate the hash of the filepath to determine which bin to find the
     # target.  The client currently assumes the repository (i.e., repository
     # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = securesystemslib.hash.digest(hash_function)
+    digest_object = sslib_hash.digest(hash_function)
     encoded_target_filepath = target_filepath.encode('utf-8')
     digest_object.update(encoded_target_filepath)
     target_filepath_hash = digest_object.hexdigest()
@@ -3076,7 +3076,7 @@ class Updater(object):
       for algorithm, digest in six.iteritems(target['fileinfo']['hashes']):
         digest_object = None
         try:
-          digest_object = securesystemslib.hash.digest_filename(target_filepath,
+          digest_object = sslib_hash.digest_filename(target_filepath,
             algorithm=algorithm)
 
         # This exception would occur if the target does not exist locally.
