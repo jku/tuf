@@ -40,6 +40,7 @@ import tuf
 import requests
 
 import securesystemslib
+from securesystemslib import formats as sslib_formats
 import securesystemslib.util
 import six
 
@@ -103,7 +104,7 @@ def safe_download(url, required_length):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  sslib_formats.URL_SCHEMA.check_match(url)
   formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
@@ -147,7 +148,7 @@ def unsafe_download(url, required_length):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  sslib_formats.URL_SCHEMA.check_match(url)
   formats.LENGTH_SCHEMA.check_match(required_length)
 
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
@@ -196,7 +197,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  sslib_formats.URL_SCHEMA.check_match(url)
   formats.LENGTH_SCHEMA.check_match(required_length)
 
   # 'url.replace('\\', '/')' is needed for compatibility with Windows-based
