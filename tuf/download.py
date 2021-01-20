@@ -42,7 +42,8 @@ from urllib3.exceptions import ReadTimeoutError
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import formats as sslib_formats
 
-import tuf
+import tuf as foo
+import tuf.formats
 from tuf import exceptions
 from tuf import formats
 from tuf import settings
