@@ -45,8 +45,8 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.setUp(self)
 
     # Making a temporary file.
-    current_dir = os.getcwd()
-    target_filepath = self.make_temp_data_file(directory=current_dir)
+    self.current_dir = os.getcwd()
+    target_filepath = self.make_temp_data_file(directory=self.current_dir)
     self.target_fileobj = open(target_filepath, 'r')
     self.file_contents = self.target_fileobj.read()
     self.file_length = len(self.file_contents)
@@ -84,8 +84,6 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     self.temp_file.seek(0)
     temp_file_data = self.temp_file.read().decode('utf-8')
     self.assertEqual(self.file_contents, temp_file_data)
-    self.assertEqual(self.file_length, len(temp_file_data))
-
 
   # Test if fetcher downloads file up to a required length
   def test_fetch_restricted_length(self):
@@ -96,7 +94,7 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.temp_file.tell(), self.file_length-4)
 
 
-  # Test if fetcher does not downlad more than actual file length
+  # Test that fetcher does not download more than actual file length
   def test_fetch_upper_length(self):
     for chunk in self.fetcher.fetch(self.url, self.file_length+4):
         self.temp_file.write(chunk)
@@ -107,10 +105,31 @@ class TestFetcher(unittest_toolbox.Modified_TestCase):
 
   # Test incorrect URL parsing
   def test_url_parsing(self):
-   with self.assertRaises(tuf.exceptions.URLParsingError) as cm:
-     for chunk in self.fetcher.fetch(self.random_string(), self.file_length):
-         self.temp_file.write(chunk)
+    with self.assertRaises(tuf.exceptions.URLParsingError):
+      for chunk in self.fetcher.fetch(self.random_string(), self.file_length):
+          self.temp_file.write(chunk)
 
+
+  # Test: Normal case with url data downloaded in more than one chunk
+  def test_big_file_fetch(self):
+    big_target_filepath = self.make_temp_data_file(directory=self.current_dir,
+        data='large amount of data' * 100000)
+    big_target_fileobj = open(big_target_filepath, 'r')
+    big_file_contents = big_target_fileobj.read()
+    big_file_length = len(big_file_contents)
+
+    big_rel_target_filepath = os.path.basename(big_target_filepath)
+    url = 'http://127.0.0.1:' \
+        + str(self.server_process_handler.port) + '/' + big_rel_target_filepath
+
+    for chunk in self.fetcher.fetch(url, big_file_length):
+        self.temp_file.write(chunk)
+
+    self.temp_file.seek(0)
+    temp_file_data = self.temp_file.read().decode('utf-8')
+    self.assertEqual(big_file_contents, temp_file_data)
+
+    big_target_fileobj.close()
 
 
 # Run unit test.

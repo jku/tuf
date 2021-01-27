@@ -67,8 +67,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.setUp(self)
 
     # Making a temporary file.
-    current_dir = os.getcwd()
-    target_filepath = self.make_temp_data_file(directory=current_dir)
+    self.current_dir = os.getcwd()
+    target_filepath = self.make_temp_data_file(directory=self.current_dir)
     self.target_fileobj = open(target_filepath, 'r')
     self.target_data = self.target_fileobj.read()
     self.target_data_length = len(self.target_data)
@@ -110,6 +110,28 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       temp_file_data = temp_fileobj.read().decode('utf-8')
       self.assertEqual(self.target_data, temp_file_data)
       self.assertEqual(self.target_data_length, len(temp_file_data))
+
+
+  # Test: Download url in more than one chunk.
+  def test_download_big_url_to_tempfileobj(self):
+
+    big_target_filepath = self.make_temp_data_file(directory=self.current_dir,
+        data='large amount of data' * 100000)
+    big_target_fileobj = open(big_target_filepath, 'r')
+    big_file_contents = big_target_fileobj.read()
+    big_file_length = len(big_file_contents)
+
+    big_rel_target_filepath = os.path.basename(big_target_filepath)
+    url = 'http://127.0.0.1:' \
+        + str(self.server_process_handler.port) + '/' + big_rel_target_filepath
+
+    download_file = download.safe_download
+    with download_file(url, big_file_length, self.fetcher) as temp_fileobj:
+      temp_fileobj.seek(0)
+      temp_file_data = temp_fileobj.read().decode('utf-8')
+      self.assertEqual(big_file_contents, temp_file_data)
+
+    big_target_fileobj.close()
 
 
 
