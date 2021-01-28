@@ -43,6 +43,7 @@ import warnings
 
 import tuf
 import tuf.download as download
+import tuf.fetcher
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.exceptions
@@ -66,8 +67,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.setUp(self)
 
     # Making a temporary file.
-    current_dir = os.getcwd()
-    target_filepath = self.make_temp_data_file(directory=current_dir)
+    self.current_dir = os.getcwd()
+    target_filepath = self.make_temp_data_file(directory=self.current_dir)
     self.target_fileobj = open(target_filepath, 'r')
     self.target_data = self.target_fileobj.read()
     self.target_data_length = len(self.target_data)
@@ -76,7 +77,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.server_process_handler = utils.TestServerProcess(log=logger)
 
     rel_target_filepath = os.path.basename(target_filepath)
-    self.url = 'http://localhost:' \
+    self.url = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + '/' + rel_target_filepath
 
     # Computing hash of target file data.
@@ -84,6 +85,10 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     m.update(self.target_data.encode('utf-8'))
     digest = m.hexdigest()
     self.target_hash = {'md5':digest}
+
+    # Initialize the default fetcher for the download
+    self.fetcher = tuf.fetcher.RequestsFetcher()
+
 
 
   # Stop server process and perform clean up.
@@ -100,11 +105,33 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def test_download_url_to_tempfileobj(self):
 
     download_file = download.safe_download
-    with download_file(self.url, self.target_data_length) as temp_fileobj:
+    with download_file(self.url, self.target_data_length, self.fetcher) as temp_fileobj:
       temp_fileobj.seek(0)
       temp_file_data = temp_fileobj.read().decode('utf-8')
       self.assertEqual(self.target_data, temp_file_data)
       self.assertEqual(self.target_data_length, len(temp_file_data))
+
+
+  # Test: Download url in more than one chunk.
+  def test_download_big_url_to_tempfileobj(self):
+
+    big_target_filepath = self.make_temp_data_file(directory=self.current_dir,
+        data='large amount of data' * 100000)
+    big_target_fileobj = open(big_target_filepath, 'r')
+    big_file_contents = big_target_fileobj.read()
+    big_file_length = len(big_file_contents)
+
+    big_rel_target_filepath = os.path.basename(big_target_filepath)
+    url = 'http://127.0.0.1:' \
+        + str(self.server_process_handler.port) + '/' + big_rel_target_filepath
+
+    download_file = download.safe_download
+    with download_file(url, big_file_length, self.fetcher) as temp_fileobj:
+      temp_fileobj.seek(0)
+      temp_file_data = temp_fileobj.read().decode('utf-8')
+      self.assertEqual(big_file_contents, temp_file_data)
+
+    big_target_fileobj.close()
 
 
 
@@ -118,18 +145,18 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # the server-reported length of the file does not match the
     # required_length.  'updater.py' *does* verify the hashes of downloaded
     # content.
-    download.safe_download(self.url, self.target_data_length - 4).close()
-    download.unsafe_download(self.url, self.target_data_length - 4).close()
+    download.safe_download(self.url, self.target_data_length - 4, self.fetcher).close()
+    download.unsafe_download(self.url, self.target_data_length - 4, self.fetcher).close()
 
     # We catch 'tuf.exceptions.DownloadLengthMismatchError' for safe_download()
     # because it will not download more bytes than requested (in this case, a
     # length greater than the size of the target file).
     self.assertRaises(tuf.exceptions.DownloadLengthMismatchError,
-        download.safe_download, self.url, self.target_data_length + 1)
+        download.safe_download, self.url, self.target_data_length + 1, self.fetcher)
 
     # Calling unsafe_download() with a mismatched length should not raise an
     # exception.
-    download.unsafe_download(self.url, self.target_data_length + 1).close()
+    download.unsafe_download(self.url, self.target_data_length + 1, self.fetcher).close()
 
 
 
@@ -165,31 +192,29 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     unsafe_download_file = download.unsafe_download
 
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      download_file, None, self.target_data_length)
+                      download_file, None, self.target_data_length, self.fetcher)
 
-    self.assertRaises(tuf.exceptions.URLParsingError,
-                      download_file,
-                      self.random_string(), self.target_data_length)
-
-    url = 'http://localhost:' \
+    url = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + '/' + self.random_string()
     self.assertRaises(requests.exceptions.HTTPError,
                       download_file,
                       url,
-                      self.target_data_length)
-    url1 = 'http://localhost:' \
+                      self.target_data_length,
+                      self.fetcher)
+    url1 = 'http://127.0.0.1:' \
       + str(self.server_process_handler.port + 1) + '/' + self.random_string()
     self.assertRaises(requests.exceptions.ConnectionError,
                       download_file,
                       url1,
-                      self.target_data_length)
+                      self.target_data_length,
+                      self.fetcher)
 
     # Specify an unsupported URI scheme.
     url_with_unsupported_uri = self.url.replace('http', 'file')
     self.assertRaises(requests.exceptions.InvalidSchema, download_file, url_with_unsupported_uri,
-                      self.target_data_length)
+                      self.target_data_length, self.fetcher)
     self.assertRaises(requests.exceptions.InvalidSchema, unsafe_download_file,
-                      url_with_unsupported_uri, self.target_data_length)
+                      url_with_unsupported_uri, self.target_data_length, self.fetcher)
 
 
 
@@ -290,7 +315,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
       os.environ['REQUESTS_CA_BUNDLE'] = bad_cert_fname
       # Clear sessions to ensure that the certificate we just specified is used.
       # TODO: Confirm necessity of this session clearing and lay out mechanics.
-      tuf.download._sessions = {}
+      self.fetcher._sessions = {}
 
       # Try connecting to the server process with the bad cert while trusting
       # the bad cert. Expect failure because even though we trust it, the
@@ -302,9 +327,9 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
             category=urllib3.exceptions.SubjectAltNameWarning)
 
         with self.assertRaises(requests.exceptions.SSLError):
-          download.safe_download(bad_https_url, target_data_length)
+          download.safe_download(bad_https_url, target_data_length, self.fetcher)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.unsafe_download(bad_https_url, target_data_length)
+          download.unsafe_download(bad_https_url, target_data_length, self.fetcher)
 
         # Try connecting to the server processes with the good certs while not
         # trusting the good certs (trusting the bad cert instead). Expect failure
@@ -312,31 +337,31 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
         # trust it.
         logger.info('Trying HTTPS download of target file: ' + good_https_url)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.safe_download(good_https_url, target_data_length)
+          download.safe_download(good_https_url, target_data_length, self.fetcher)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.unsafe_download(good_https_url, target_data_length)
+          download.unsafe_download(good_https_url, target_data_length, self.fetcher)
 
         logger.info('Trying HTTPS download of target file: ' + good2_https_url)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.safe_download(good2_https_url, target_data_length)
+          download.safe_download(good2_https_url, target_data_length, self.fetcher)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.unsafe_download(good2_https_url, target_data_length)
+          download.unsafe_download(good2_https_url, target_data_length, self.fetcher)
 
 
         # Configure environment to now trust the certfile that is expired.
         os.environ['REQUESTS_CA_BUNDLE'] = expired_cert_fname
         # Clear sessions to ensure that the certificate we just specified is used.
         # TODO: Confirm necessity of this session clearing and lay out mechanics.
-        tuf.download._sessions = {}
+        self.fetcher._sessions = {}
 
         # Try connecting to the server process with the expired cert while
         # trusting the expired cert. Expect failure because even though we trust
         # it, it is expired.
         logger.info('Trying HTTPS download of target file: ' + expired_https_url)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.safe_download(expired_https_url, target_data_length)
+          download.safe_download(expired_https_url, target_data_length, self.fetcher)
         with self.assertRaises(requests.exceptions.SSLError):
-          download.unsafe_download(expired_https_url, target_data_length)
+          download.unsafe_download(expired_https_url, target_data_length, self.fetcher)
 
 
         # Try connecting to the server processes with the good certs while
@@ -346,18 +371,18 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
         os.environ['REQUESTS_CA_BUNDLE'] = good_cert_fname
         # Clear sessions to ensure that the certificate we just specified is used.
         # TODO: Confirm necessity of this session clearing and lay out mechanics.
-        tuf.download._sessions = {}
+        self.fetcher._sessions = {}
         logger.info('Trying HTTPS download of target file: ' + good_https_url)
-        download.safe_download(good_https_url, target_data_length).close()
-        download.unsafe_download(good_https_url, target_data_length).close()
+        download.safe_download(good_https_url, target_data_length, self.fetcher).close()
+        download.unsafe_download(good_https_url, target_data_length,self.fetcher).close()
 
         os.environ['REQUESTS_CA_BUNDLE'] = good2_cert_fname
         # Clear sessions to ensure that the certificate we just specified is used.
         # TODO: Confirm necessity of this session clearing and lay out mechanics.
-        tuf.download._sessions = {}
+        self.fetcher._sessions = {}
         logger.info('Trying HTTPS download of target file: ' + good2_https_url)
-        download.safe_download(good2_https_url, target_data_length).close()
-        download.unsafe_download(good2_https_url, target_data_length).close()
+        download.safe_download(good2_https_url, target_data_length, self.fetcher).close()
+        download.unsafe_download(good2_https_url, target_data_length, self.fetcher).close()
 
     finally:
       for proc_handler in [

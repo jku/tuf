@@ -142,6 +142,7 @@ from securesystemslib import util as sslib_util
 import tuf
 from tuf import download
 from tuf import exceptions
+from tuf import fetcher
 from tuf import formats
 from tuf import keydb
 from tuf import log # pylint: disable=unused-import
@@ -622,7 +623,7 @@ class Updater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors, fetchr=None):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -662,6 +663,11 @@ class Updater(object):
                                           'targets_path': 'targets',
                                           'confined_target_dirs': ['']}}
 
+      fetcher:
+        A concrete 'FetcherInterface' implementation. Performs the network
+        related download operations. If an external implementation is not
+        provided, tuf.fetcher.RequestsFetcher is used.
+
     <Exceptions>
       securesystemslib.exceptions.FormatError:
         If the arguments are improperly formatted.
@@ -690,6 +696,13 @@ class Updater(object):
     # Save the validated arguments.
     self.repository_name = repository_name
     self.mirrors = repository_mirrors
+
+    # Initialize Updater with an externally provided 'fetcher' implementing
+    # the network download. By default tuf.fetcher.RequestsFetcher is used.
+    if fetchr is None:
+      self.fetcher = fetcher.RequestsFetcher()
+    else:
+      self.fetcher = fetchr
 
     # Store the trusted metadata read from disk.
     self.metadata = {}
@@ -1314,7 +1327,8 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        file_object = download.safe_download(file_mirror, file_length)
+        file_object = download.safe_download(file_mirror,
+            file_length, self.fetcher)
 
         # Verify 'file_object' against the expected length and hashes.
         self._check_file_length(file_object, file_length)
@@ -1512,7 +1526,7 @@ class Updater(object):
     for file_mirror in file_mirrors:
       try:
         file_object = download.unsafe_download(file_mirror,
-            upperbound_filelength)
+            upperbound_filelength, self.fetcher)
         file_object.seek(0)
 
         # Verify 'file_object' according to the callable function.
