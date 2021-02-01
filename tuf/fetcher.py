@@ -57,6 +57,7 @@ class FetcherInterface():
       tuf.exceptions.SlowRetrievalError, if a timeout occurs while receiving
       data from a server
 
+      tuf.exceptions.FetcherHTTPError, if an HTTP error code was received
     <Returns>
       A bytes iterator
     """
@@ -101,7 +102,11 @@ class RequestsFetcher(FetcherInterface):
     response = session.get(url, stream=True,
         timeout=settings.SOCKET_TIMEOUT)
     # Check response status.
-    response.raise_for_status()
+    try:
+      response.raise_for_status()
+    except requests.HTTPError as e:
+      raise exceptions.FetcherHTTPError(e.response.status_code)
+
 
     # Define a generator function to be returned by fetch. This way the caller
     # of fetch can differentiate between connection and actual data download
@@ -139,6 +144,9 @@ class RequestsFetcher(FetcherInterface):
 
           if bytes_received >= required_length:
             break
+
+      except requests.HTTPError as e:
+        raise exceptions.FetcherHTTPError(e.response.status_code)
 
       except ReadTimeoutError as e:
         raise exceptions.SlowRetrievalError(str(e))

@@ -196,7 +196,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     url = 'http://127.0.0.1:' \
         + str(self.server_process_handler.port) + '/' + self.random_string()
-    self.assertRaises(requests.exceptions.HTTPError,
+    self.assertRaises(tuf.exceptions.FetcherHTTPError,
                       download_file,
                       url,
                       self.target_data_length,

@@ -1128,8 +1128,8 @@ class Updater(object):
     """
 
     def neither_403_nor_404(mirror_error):
-      if isinstance(mirror_error, HTTPError):
-        if mirror_error.response.status_code in {403, 404}:
+      if isinstance(mirror_error, exceptions.FetcherHTTPError):
+        if mirror_error.error_code in {403, 404}:
           return False
       return True
 

@@ -335,3 +335,11 @@ class URLParsingError(Error):
 class InvalidConfigurationError(Error):
   """If a configuration object does not match the expected format."""
 
+class FetcherHTTPError(Exception):
+  """
+  Returned by FetcherInterface implementations for HTTP errors.
+  error_code is HTTP status code as int, and must be set.
+  """
+  def __init__(self, error_code):
+    super(FetcherHTTPError, self).__init__()
+    self.error_code = error_code
