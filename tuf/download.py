@@ -195,42 +195,42 @@ def _download_file(url, required_length, fetcher, STRICT_REQUIRED_LENGTH=True):
   average_download_speed = 0
   number_of_bytes_received = 0
 
-  try:
-    chunks = fetcher.fetch(url, required_length)
-    start_time = timeit.default_timer()
-    for chunk in chunks:
+  with fetcher.fetch(url, required_length) as chunks:
+    try:
+      start_time = timeit.default_timer()
+      for chunk in chunks:
 
-      stop_time = timeit.default_timer()
-      temp_file.write(chunk)
+        stop_time = timeit.default_timer()
+        temp_file.write(chunk)
 
-      # Measure the average download speed.
-      number_of_bytes_received += len(chunk)
-      seconds_spent_receiving = stop_time - start_time
-      average_download_speed = number_of_bytes_received / seconds_spent_receiving
+        # Measure the average download speed.
+        number_of_bytes_received += len(chunk)
+        seconds_spent_receiving = stop_time - start_time
+        average_download_speed = number_of_bytes_received / seconds_spent_receiving
 
-      if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
-        logger.debug('The average download speed dropped below the minimum'
-          ' average download speed set in tuf.settings.py. Stopping the'
-          ' download!')
-        break
+        if average_download_speed < tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+          logger.debug('The average download speed dropped below the minimum'
+            ' average download speed set in tuf.settings.py. Stopping the'
+            ' download!')
+          break
 
-      else:
-        logger.debug('The average download speed has not dipped below the'
-          ' minimum average download speed set in tuf.settings.py.')
+        else:
+          logger.debug('The average download speed has not dipped below the'
+            ' minimum average download speed set in tuf.settings.py.')
 
-    # Does the total number of downloaded bytes match the required length?
-    _check_downloaded_length(number_of_bytes_received, required_length,
-                             STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
-                             average_download_speed=average_download_speed)
+      # Does the total number of downloaded bytes match the required length?
+      _check_downloaded_length(number_of_bytes_received, required_length,
+                               STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
+                               average_download_speed=average_download_speed)
 
-  except Exception:
-    # Close 'temp_file'.  Any written data is lost.
-    temp_file.close()
-    logger.debug('Could not download URL: ' + repr(url))
-    raise
+    except Exception:
+      # Close 'temp_file'.  Any written data is lost.
+      temp_file.close()
+      logger.debug('Could not download URL: ' + repr(url))
+      raise
 
-  else:
-    return temp_file
+    else:
+      return temp_file
 
 
 
