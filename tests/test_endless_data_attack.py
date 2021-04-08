@@ -269,7 +269,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
       self.repository_updater.refresh()
 
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in dict.items(exception.mirror_errors):
+      for mirror_url, mirror_error in exception.mirror_errors.items():
         self.assertTrue(isinstance(mirror_error, securesystemslib.exceptions.Error))
 
     else:

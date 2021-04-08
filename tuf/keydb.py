@@ -117,7 +117,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # Iterate the keys found in 'root_metadata' by converting them to
   # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
   # key database using the provided keyid.
-  for keyid, key_metadata in dict.items(root_metadata['keys']):
+  for keyid, key_metadata in root_metadata['keys'].items():
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA' format,

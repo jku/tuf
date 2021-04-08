@@ -660,7 +660,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
     # Add the keys specified in the delegations field of the Targets role.
-    for keyid, key_metadata in dict.items(targets_metadata['delegations']['keys']):
+    for keyid, key_metadata in targets_metadata['delegations']['keys'].items():
 
       # Use the keyid found in the delegation
       key_object, _ = sslib_keys.format_metadata_to_key(key_metadata,
@@ -1427,7 +1427,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   if use_existing_fileinfo:
     # Use the provided fileinfo dicts, conforming to FILEINFO_SCHEMA, rather than
     # generating fileinfo
-    for target, fileinfo in dict.items(target_files):
+    for target, fileinfo in target_files.items():
 
       # Ensure all fileinfo entries in target_files have a non-empty hashes dict
       if not fileinfo.get('hashes', None):
@@ -1496,7 +1496,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
   filedict = {}
 
   # Generate the fileinfo of all the target files listed in 'target_files'.
-  for target, fileinfo in dict.items(target_files):
+  for target, fileinfo in target_files.items():
 
     # The root-most folder of the targets directory should not be included in
     # target paths listed in targets metadata.
@@ -1517,7 +1517,7 @@ def _generate_targets_fileinfo(target_files, targets_directory,
 
     # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
     if write_consistent_targets:
-      for target_digest in dict.values(filedict[relative_targetpath]['hashes']):
+      for target_digest in filedict[relative_targetpath]['hashes'].values():
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)

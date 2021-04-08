@@ -751,7 +751,7 @@ def remove_target_files_from_metadata(parsed_arguments, repository):
         parsed_arguments.role, repository._repository_name)
 
     for glob_pattern in parsed_arguments.remove:
-      for path in list(dict.keys(roleinfo['paths'])):
+      for path in list(roleinfo['paths'].keys()):
         if fnmatch.fnmatch(path, glob_pattern):
           del roleinfo['paths'][path]
 

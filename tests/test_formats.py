@@ -286,7 +286,7 @@ class TestFormats(unittest.TestCase):
 
     # Iterate 'valid_schemas', ensuring each 'valid_schema' correctly matches
     # its respective 'schema_type'.
-    for schema_name, (schema_type, valid_schema) in dict.items(valid_schemas):
+    for schema_name, (schema_type, valid_schema) in valid_schemas.items():
       if not schema_type.matches(valid_schema):
         print('bad schema: ' + repr(valid_schema))
       self.assertEqual(True, schema_type.matches(valid_schema))
@@ -294,7 +294,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for invalid schemas.
     # Set the 'valid_schema' of 'valid_schemas' to an invalid
     # value and test that it does not match 'schema_type'.
-    for schema_name, (schema_type, valid_schema) in dict.items(valid_schemas):
+    for schema_name, (schema_type, valid_schema) in valid_schemas.items():
       invalid_schema = 0xBAD
       if isinstance(schema_type, securesystemslib.schema.Integer):
         invalid_schema = 'BAD'

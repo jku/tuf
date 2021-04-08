@@ -205,7 +205,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # Verify that the specific 'tuf.exceptions.ForbiddenTargetError' exception is raised
     # by each mirror.
     except tuf.exceptions.NoWorkingMirrorError as exception:
-      for mirror_url, mirror_error in dict.items(exception.mirror_errors):
+      for mirror_url, mirror_error in exception.mirror_errors.items():
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
 

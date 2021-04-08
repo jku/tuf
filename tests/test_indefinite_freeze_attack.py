@@ -367,7 +367,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
       except tuf.exceptions.NoWorkingMirrorError as e:
         # Make sure the contained error is ExpiredMetadataError
-        for mirror_url, mirror_error in dict.items(e.mirror_errors):
+        for mirror_url, mirror_error in e.mirror_errors.items():
           self.assertTrue(isinstance(mirror_error, tuf.exceptions.ExpiredMetadataError))
 
       else:
@@ -427,7 +427,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
       except tuf.exceptions.NoWorkingMirrorError as e:
         # Make sure the contained error is ExpiredMetadataError
-        for mirror_url, mirror_error in dict.items(e.mirror_errors):
+        for mirror_url, mirror_error in e.mirror_errors.items():
           self.assertTrue(isinstance(mirror_error, tuf.exceptions.ExpiredMetadataError))
           self.assertTrue(mirror_url.endswith('snapshot.json'))
 

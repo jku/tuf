@@ -296,7 +296,7 @@ class NoWorkingMirrorError(Error):
   def __str__(self):
     all_errors = 'No working mirror was found:'
 
-    for mirror_url, mirror_error in dict.items(self.mirror_errors):
+    for mirror_url, mirror_error in self.mirror_errors.items():
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
         mirror_url_tokens = urllib.parse.urlparse(mirror_url)

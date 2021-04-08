@@ -98,7 +98,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   path_key = 'metadata_path' if file_type == 'meta' else 'targets_path'
 
   list_of_mirrors = []
-  for junk, mirror_info in dict.items(mirrors_dict):
+  for junk, mirror_info in mirrors_dict.items():
     # Does mirror serve this file type at all?
     path = mirror_info.get(path_key)
     if path is None:
