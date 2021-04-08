@@ -7,9 +7,9 @@
 
 # Imports
 import requests
-import six
 import logging
 import time
+import urllib
 from urllib3.exceptions import ReadTimeoutError
 
 import tuf
@@ -137,7 +137,7 @@ class RequestsFetcher(FetcherInterface):
     """
     # Use a different requests.Session per schema+hostname combination, to
     # reuse connections while minimizing subtle security issues.
-    parsed_url = six.moves.urllib.parse.urlparse(url)
+    parsed_url = urllib.parse.urlparse(url)
 
     if not parsed_url.scheme or not parsed_url.hostname:
       raise exceptions.URLParsingError(

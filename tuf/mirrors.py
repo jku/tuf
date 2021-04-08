@@ -31,6 +31,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import urllib
 
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
@@ -39,7 +40,6 @@ from securesystemslib.util import file_in_confined_directories
 
 from tuf import formats
 
-import six
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.
@@ -98,7 +98,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   path_key = 'metadata_path' if file_type == 'meta' else 'targets_path'
 
   list_of_mirrors = []
-  for junk, mirror_info in six.iteritems(mirrors_dict):
+  for junk, mirror_info in dict.items(mirrors_dict):
     # Does mirror serve this file type at all?
     path = mirror_info.get(path_key)
     if path is None:
@@ -119,7 +119,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # side. Do *NOT* pass URLs with Unicode characters without first encoding
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
-    file_path = six.moves.urllib.parse.quote(file_path)
+    file_path = urllib.parse.quote(file_path)
     url = os.path.join(mirror_info['url_prefix'], path, file_path)
 
     # The above os.path.join() result as well as input file_path may be
