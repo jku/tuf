@@ -31,7 +31,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import urllib
+from urllib import parse
 
 import securesystemslib # pylint: disable=unused-import
 from securesystemslib import exceptions as sslib_exceptions
@@ -114,12 +114,12 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
           confined_target_dirs):
         continue
 
-    # urllib.quote(string) replaces special characters in string using the %xx
+    # parse.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
     # side. Do *NOT* pass URLs with Unicode characters without first encoding
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
-    file_path = urllib.parse.quote(file_path)
+    file_path = parse.quote(file_path)
     url = os.path.join(mirror_info['url_prefix'], path, file_path)
 
     # The above os.path.join() result as well as input file_path may be

@@ -53,7 +53,7 @@ import json
 import logging
 import unittest
 import sys
-import urllib
+from urllib import request
 
 if sys.version_info >= (3, 3):
   import unittest.mock as mock
@@ -223,7 +223,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
 
-    urllib.request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
+    request.urlretrieve(url_file.replace('\\', '/'), client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_targets_fileinfo(length, hashes)

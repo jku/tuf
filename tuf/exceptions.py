@@ -30,7 +30,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import urllib
+from urllib import parse
 
 import logging
 logger = logging.getLogger(__name__)
@@ -299,7 +299,7 @@ class NoWorkingMirrorError(Error):
     for mirror_url, mirror_error in self.mirror_errors.items():
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
-        mirror_url_tokens = urllib.parse.urlparse(mirror_url)
+        mirror_url_tokens = parse.urlparse(mirror_url)
 
       except Exception:
         logger.exception('Failed to parse mirror URL: ' + repr(mirror_url))
