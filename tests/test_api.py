@@ -330,6 +330,67 @@ class TestMetadata(unittest.TestCase):
         # Verify that data is updated
         self.assertEqual(targets.signed.targets[filename], fileinfo)
 
+
+    def test_metadata_root_delegator(self):
+        root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
+        root = Metadata.from_file(root_path)
+        snapshot_path = os.path.join(
+                self.repo_dir, 'metadata', 'snapshot.json')
+        snapshot = Metadata.from_file(snapshot_path)
+
+        verified = root.signed.verify_delegate_with_threshold('root', root)
+        self.assertTrue(verified)
+        verified = root.signed.verify_delegate_with_threshold('snapshot', snapshot)
+        self.assertTrue(verified)
+
+        with self.assertRaises(tuf.exceptions.UnknownRoleError):
+            root.signed.verify_delegate_with_threshold('foo', snapshot)
+
+        # modified delegate content should fail verification
+        expires = snapshot.signed.expires
+        snapshot.signed.bump_expiration()
+        verified = root.signed.verify_delegate_with_threshold('snapshot', snapshot)
+        self.assertFalse(verified)
+        snapshot.signed.expires = expires
+
+        # different delegation keys should fail verification
+        verified = root.signed.verify_delegate_with_threshold('timestamp', snapshot)
+        self.assertFalse(verified)
+
+        # Higher threshold should fail verification
+        root.signed.roles['snapshot']['threshold'] += 1
+        verified = root.signed.verify_delegate_with_threshold('snapshot', snapshot)
+        self.assertFalse(verified)
+
+        # TODO test higher thresholds
+
+    def test_metadata_targets_delegator(self):
+        targets_path = os.path.join(
+                self.repo_dir, 'metadata', 'targets.json')
+        targets = Metadata.from_file(targets_path)
+        delegate_path = os.path.join(
+                self.repo_dir, 'metadata', 'role1.json')
+        delegate = Metadata.from_file(delegate_path)
+
+        verified = targets.signed.verify_delegate_with_threshold('role1', delegate)
+        self.assertTrue(verified)
+
+        with self.assertRaises(tuf.exceptions.UnknownRoleError):
+            targets.signed.verify_delegate_with_threshold('foo', delegate)
+
+        # modified delegate content should fail verification
+        expires = delegate.signed.expires
+        delegate.signed.bump_expiration()
+        verified = targets.signed.verify_delegate_with_threshold('role1', delegate)
+        self.assertFalse(verified)
+        delegate.signed.expires = expires
+
+        # Higher threshold should fail verification
+        targets.signed.delegations["roles"][0]['threshold'] += 1
+        verified = targets.signed.verify_delegate_with_threshold('role1', delegate)
+        self.assertFalse(verified)
+
+
 # Run unit test.
 if __name__ == '__main__':
     utils.configure_test_logging(sys.argv)
