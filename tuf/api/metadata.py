@@ -286,6 +286,45 @@ class Metadata:
             signed_serializer.serialize(self.signed),
         )
 
+    def verify_delegate_with_threshold(
+        self, role_name: str, delegate: "Metadata"
+    ) -> bool:
+        """Verifies that 'delegate' is signed with keys and threshold of 'role_name'.
+
+        Raises:
+            ValueError if called on non-delegating Metadata
+            UnknownRoleError if 'role_name' is not found
+        """
+
+        # Find the keys and role in our metadata
+        if self.signed._type == 'root':
+            keys = self.signed.keys
+            role = self.signed.roles.get(role_name)
+        elif self.signed._type == 'targets':
+            keys = self.signed.delegations["keys"]
+            # role names are unique: first match is enough
+            roles = self.signed.delegations["roles"]
+            role = next((role for role in roles if role["name"] == role_name), None)
+        else:
+            raise ValueError('Call is valid only on delegator metadata')
+
+        if role is None:
+            raise exceptions.UnknownRoleError
+
+        # verify that delegate is signed by correct threshold of unique keys
+        unique_keys = set()
+        for keyid in role["keyids"]:
+            key_metadata = keys[keyid]
+            key, dummy = format_metadata_to_key(key_metadata)
+
+            try:
+                if delegate.verify(key):
+                    unique_keys.add(key["keyval"]["public"])
+            except:  # TODO specify the Exceptions
+                pass
+
+        return len(unique_keys) >= role["threshold"]
+
 
 class Signed:
     """A base class for the signed part of TUF metadata.
@@ -359,29 +398,6 @@ class Signed:
     def bump_version(self) -> None:
         """Increments the metadata version number by 1."""
         self.version += 1
-
-    @staticmethod
-    def _verify_delegate_with_threshold(
-        role: Mapping[str, Any], keys: Mapping[str, Any], delegate: Metadata
-    ) -> bool:
-        """Verifies 'delegate' using the keys and threshold defined by 'role'.
-
-        Returns true if required threshold of valid signatures was found.
-        """
-
-        # Keep track of _unique_ signing keys to avoid double counting
-        unique_keys = set()
-        for keyid in role["keyids"]:
-            key_metadata = keys[keyid]
-            key, dummy = format_metadata_to_key(key_metadata)
-
-            try:
-                if delegate.verify(key):
-                    unique_keys.add(key["keyval"]["public"])
-            except:  # TODO specify the Exceptions
-                pass
-
-        return len(unique_keys) >= role["threshold"]
 
 
 class Root(Signed):
@@ -479,18 +495,6 @@ class Root(Signed):
                     return
 
             del self.keys[keyid]
-
-    def verify_delegate_with_threshold(
-        self, role_name: str, delegate: Metadata
-    ) -> bool:
-        """Verifies 'delegate' using the keys and threshold of 'role_name'."""
-
-        keys = self.keys
-        role = self.roles.get(role_name)
-        if role is None:
-            raise exceptions.UnknownRoleError
-
-        return self._verify_delegate_with_threshold(role, keys, delegate)
 
 
 class Timestamp(Signed):
@@ -716,18 +720,3 @@ class Targets(Signed):
     def update(self, filename: str, fileinfo: Mapping[str, Any]) -> None:
         """Assigns passed target file info to meta dict. """
         self.targets[filename] = fileinfo
-
-    def verify_delegate_with_threshold(
-        self, role_name: str, delegate: Metadata
-    ) -> bool:
-        """Verifies 'delegate' using the keys and threshold of 'role_name'."""
-
-        keys = self.delegations["keys"]
-
-        # role names are unique: first match is enough
-        roles = self.delegations["roles"]
-        role = next((role for role in roles if role["name"] == role_name), None)
-        if role is None:
-            raise exceptions.UnknownRoleError
-
-        return self._verify_delegate_with_threshold(role, keys, delegate)
