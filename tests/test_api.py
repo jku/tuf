@@ -377,6 +377,67 @@ class TestMetadata(unittest.TestCase):
         timestamp_test = Timestamp.from_dict(test_dict)
         self.assertEqual(timestamp_dict['signed'], timestamp_test.to_dict())
 
+    def test_metadata_root_delegator(self):
+        root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
+        root = Metadata.from_file(root_path)
+        snapshot_path = os.path.join(
+                self.repo_dir, 'metadata', 'snapshot.json')
+        snapshot = Metadata.from_file(snapshot_path)
+
+        root.verify_delegate('root', root)
+        root.verify_delegate('snapshot', snapshot)
+
+        # only root and targets can verify delegates
+        with self.assertRaises(ValueError):
+            snapshot.verify_delegate('snapshot', snapshot)
+        # cannot verify with non-existing role
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            root.verify_delegate('foo', snapshot)
+
+        # modified delegate content should fail verification
+        expires = snapshot.signed.expires
+        snapshot.signed.bump_expiration()
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            root.verify_delegate('snapshot', snapshot)
+        snapshot.signed.expires = expires
+
+        # different delegation keys should fail verification
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            root.verify_delegate('timestamp', snapshot)
+
+        # Higher threshold should fail verification
+        root.signed.roles['snapshot'].threshold += 1
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            root.verify_delegate('snapshot', snapshot)
+
+        # TODO test higher thresholds
+
+    def test_metadata_targets_delegator(self):
+        targets_path = os.path.join(
+                self.repo_dir, 'metadata', 'targets.json')
+        targets = Metadata.from_file(targets_path)
+        delegate_path = os.path.join(
+                self.repo_dir, 'metadata', 'role1.json')
+        delegate = Metadata.from_file(delegate_path)
+
+        targets.verify_delegate('role1', delegate)
+
+        # cannot verify non-existing role
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            targets.verify_delegate('foo', delegate)
+
+        # modified delegate content should fail verification
+        expires = delegate.signed.expires
+        delegate.signed.bump_expiration()
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            targets.verify_delegate('role1', delegate)
+        delegate.signed.expires = expires
+
+        # Higher threshold should fail verification
+        targets.signed.delegations.roles[0].threshold += 1
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            targets.verify_delegate('role1', delegate)
+
     def test_key_class(self):
         keys = {
             "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d":{
