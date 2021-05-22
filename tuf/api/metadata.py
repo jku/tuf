@@ -48,13 +48,26 @@ class Metadata:
             i.e. one of Targets, Snapshot, Timestamp or Root.
 
         signatures: A list of Securesystemslib Signature objects, each signing
-            the canonical serialized representation of 'signed'.
+            the canonical serialized representation of 'signed'. this is a
+            read-only representation of signatures_by_keyid.
 
+        signatures_by_keyid: A dict of keyids to Securesystemslib Signature
+            objects, each signing the canonical serialized representation of
+            'signed'.
     """
 
-    def __init__(self, signed: "Signed", signatures: List[Signature]) -> None:
+    def __init__(self, signed: "Signed", signatures: Dict[str, Signature]):
+        """Creates a new Metadata instance
+        Args:
+            signed: An instance of Targets, Snapshot, Timestamp or Root
+            signatures: A dictionary of keyids to Signatures
+        """
         self.signed = signed
-        self.signatures = signatures
+        self.signatures_by_keyid = signatures
+
+    @property
+    def signatures(self) -> List[Signature]:
+        return sorted(self.signatures_by_keyid.values())
 
     @classmethod
     def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata":
@@ -88,10 +101,14 @@ class Metadata:
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
 
-        signatures = []
-        for signature in metadata.pop("signatures"):
-            signature_obj = Signature.from_dict(signature)
-            signatures.append(signature_obj)
+        signatures: Dict[str, Signature] = {}
+        for sig_dict in metadata.pop("signatures"):
+            sig = Signature.from_dict(sig_dict)
+            if sig.keyid in signatures:
+                raise ValueError(
+                    "Multiple signatures found for keyid {sig.keyid}"
+                )
+            signatures[sig.keyid] = sig
 
         return cls(
             signed=inner_cls.from_dict(metadata.pop("signed")),
@@ -163,9 +180,7 @@ class Metadata:
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
 
-        signatures = []
-        for sig in self.signatures:
-            signatures.append(sig.to_dict())
+        signatures = [sig.to_dict() for sig in self.signatures]
 
         return {"signatures": signatures, "signed": self.signed.to_dict()}
 
@@ -244,9 +259,9 @@ class Metadata:
         signature = signer.sign(signed_serializer.serialize(self.signed))
 
         if append:
-            self.signatures.append(signature)
+            self.signatures_by_keyid[signature.keyid] = signature
         else:
-            self.signatures = [signature]
+            self.signatures_by_keyid = {signature.keyid: signature}
 
         return signature
 
@@ -424,14 +439,13 @@ class Key:
         Raises:
             # TODO: Revise exception taxonomy
         """
-        # TODO: Make sure elsewhere that Metadata enforces signature uniqueness
         try:
-            sig = next(s for s in metadata.signatures if s.keyid == self.id)
-        except StopIteration:
+            sig = metadata.signatures_by_keyid[self.id]
+        except KeyError as e:
             raise exceptions.UnsignedMetadataError(
-                f"no signature for key {self.id} found in metadata",
+                f"no signature for key {self.id} found",
                 metadata.signed
-            )
+            ) from e
 
         if signed_serializer is None:
             # pylint: disable=import-outside-toplevel

@@ -201,9 +201,6 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
             targets_key.verify_signature(metadata_obj)
 
-        # TODO Test that more than one signatures cannot exist for a key
-
-
     def test_metadata_base(self):
         # Use of Snapshot is arbitrary, we're just testing the base class features
         # with real data
@@ -238,6 +235,12 @@ class TestMetadata(unittest.TestCase):
         is_expired = md.signed.is_expired()
         self.assertFalse(is_expired)
         md.signed.expires = expires
+
+        # Test deserializing metadata with non-unique signatures:
+        data = md.to_dict()
+        data["signatures"].append(data["signatures"][0])
+        with self.assertRaises(ValueError):
+            Metadata.from_dict(data)
 
 
     def test_metafile_class(self):
