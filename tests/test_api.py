@@ -182,6 +182,11 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
             snapshot_key.verify_signature(metadata_obj)
 
+        # Test explicit serializers
+        targets_key.verify_signature(metadata_obj, CanonicalJSONSerializer())
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            targets_key.verify_signature(metadata_obj, JSONSerializer())
+
         sslib_signer = SSlibSigner(self.keystore['snapshot']['private'])
         # Append a new signature with the unrelated key and assert that ...
         metadata_obj.sign(sslib_signer, append=True)
@@ -200,6 +205,20 @@ class TestMetadata(unittest.TestCase):
         timestamp_key.verify_signature(metadata_obj)
         with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
             targets_key.verify_signature(metadata_obj)
+
+        # Test failure on broken public key data (securesystemslib CryptoError)
+        public = timestamp_key.keyval["public"]
+        timestamp_key.keyval["public"] = "foo"
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        timestamp_key.keyval["public"] = public
+
+        # Test failure on broken signature (securesystemslib FormatError)
+        sig = metadata_obj.signatures_by_keyid[timestamp_keyid].signature
+        metadata_obj.signatures_by_keyid[timestamp_keyid].signature = "foo"
+        with self.assertRaises(tuf.exceptions.UnsignedMetadataError):
+            timestamp_key.verify_signature(metadata_obj)
+        metadata_obj.signatures_by_keyid[timestamp_keyid].signature = sig
 
     def test_metadata_base(self):
         # Use of Snapshot is arbitrary, we're just testing the base class features

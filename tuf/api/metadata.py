@@ -19,6 +19,7 @@ import tempfile
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional
 
+from securesystemslib import exceptions as sslib_exceptions
 from securesystemslib import keys as sslib_keys
 from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
@@ -437,14 +438,14 @@ class Key:
                 CanonicalJSONSerializer is used.
 
         Raises:
-            # TODO: Revise exception taxonomy
+            UnsignedMetadataError: The signature could not be verified for a
+                variety of possible reasons: see error message.
         """
         try:
             sig = metadata.signatures_by_keyid[self.id]
         except KeyError as e:
             raise exceptions.UnsignedMetadataError(
-                f"no signature for key {self.id} found",
-                metadata.signed
+                f"no signature for key {self.id} found", metadata.signed
             ) from e
 
         if signed_serializer is None:
@@ -453,16 +454,26 @@ class Key:
 
             signed_serializer = CanonicalJSONSerializer()
 
-        sslib_key, dummy = sslib_keys.format_metadata_to_key(self.to_dict())
-        if not sslib_keys.verify_signature(
-            sslib_key,
-            sig.to_dict(),
-            signed_serializer.serialize(metadata.signed),
-        ):
+        try:
+            sslib_key, dummy = sslib_keys.format_metadata_to_key(self.to_dict())
+            if not sslib_keys.verify_signature(
+                sslib_key,
+                sig.to_dict(),
+                signed_serializer.serialize(metadata.signed),
+            ):
+                raise exceptions.UnsignedMetadataError(
+                    f"Failed to verify {self.id} signature for metadata",
+                    metadata.signed,
+                )
+        except (
+            sslib_exceptions.CryptoError,
+            sslib_exceptions.FormatError,
+            sslib_exceptions.UnsupportedAlgorithmError,
+        ) as e:
             raise exceptions.UnsignedMetadataError(
-                "Failed to verify {self.id} signature for metadata",
-                metadata.signed
-            )
+                f"Failed to verify {self.id} signature for metadata",
+                metadata.signed,
+            ) from e
 
 
 class Role:
