@@ -19,7 +19,7 @@ import tempfile
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional
 
-from securesystemslib.keys import verify_signature
+from securesystemslib import keys as sslib_keys
 from securesystemslib.signer import Signature, Signer
 from securesystemslib.storage import FilesystemBackend, StorageBackendInterface
 from securesystemslib.util import persist_temp_file
@@ -250,59 +250,6 @@ class Metadata:
 
         return signature
 
-    def verify(
-        self,
-        key: Mapping[str, Any],
-        signed_serializer: Optional[SignedSerializer] = None,
-    ) -> bool:
-        """Verifies 'signatures' over 'signed' that match the passed key by id.
-
-        Arguments:
-            key: A securesystemslib-style public key object.
-            signed_serializer: A SignedSerializer subclass instance that
-                implements the desired canonicalization format. Per default a
-                CanonicalJSONSerializer is used.
-
-        Raises:
-            # TODO: Revise exception taxonomy
-            tuf.exceptions.Error: None or multiple signatures found for key.
-            securesystemslib.exceptions.FormatError: Key argument is malformed.
-            tuf.api.serialization.SerializationError:
-                'signed' cannot be serialized.
-            securesystemslib.exceptions.CryptoError, \
-                    securesystemslib.exceptions.UnsupportedAlgorithmError:
-                Signing errors.
-
-        Returns:
-            A boolean indicating if the signature is valid for the passed key.
-
-        """
-        signatures_for_keyid = list(
-            filter(lambda sig: sig.keyid == key["keyid"], self.signatures)
-        )
-
-        if not signatures_for_keyid:
-            raise exceptions.Error(f"no signature for key {key['keyid']}.")
-
-        if len(signatures_for_keyid) > 1:
-            raise exceptions.Error(
-                f"{len(signatures_for_keyid)} signatures for key "
-                f"{key['keyid']}, not sure which one to verify."
-            )
-
-        if signed_serializer is None:
-            # Use local scope import to avoid circular import errors
-            # pylint: disable=import-outside-toplevel
-            from tuf.api.serialization.json import CanonicalJSONSerializer
-
-            signed_serializer = CanonicalJSONSerializer()
-
-        return verify_signature(
-            key,
-            signatures_for_keyid[0].to_dict(),
-            signed_serializer.serialize(self.signed),
-        )
-
 
 class Signed:
     """A base class for the signed part of TUF metadata.
@@ -424,7 +371,6 @@ class Key:
             "rsassa-pss-sha256", "ed25519", and "ecdsa-sha2-nistp256".
         keyval: A dictionary containing the public portion of the key.
         unrecognized_fields: Dictionary of all unrecognized fields.
-
     """
 
     def __init__(
@@ -460,6 +406,49 @@ class Key:
             "keyval": self.keyval,
             **self.unrecognized_fields,
         }
+
+    def verify_signature(
+        self,
+        metadata: Metadata,
+        signed_serializer: Optional[SignedSerializer] = None,
+    ):
+        """Verifies that the metadata.signatures contains a signature signing
+        metadata.signed, and that the signature was made with this key.
+
+        Arguments:
+            metadata: Metadata to verify
+            signed_serializer: A SignedSerializer subclass instance that
+                implements the desired canonicalization format. Per default a
+                CanonicalJSONSerializer is used.
+
+        Raises:
+            # TODO: Revise exception taxonomy
+        """
+        # TODO: Make sure elsewhere that Metadata enforces signature uniqueness
+        try:
+            sig = next(s for s in metadata.signatures if s.keyid == self.id)
+        except StopIteration:
+            raise exceptions.UnsignedMetadataError(
+                f"no signature for key {self.id} found in metadata",
+                metadata.signed
+            )
+
+        if signed_serializer is None:
+            # pylint: disable=import-outside-toplevel
+            from tuf.api.serialization.json import CanonicalJSONSerializer
+
+            signed_serializer = CanonicalJSONSerializer()
+
+        sslib_key, dummy = sslib_keys.format_metadata_to_key(self.to_dict())
+        if not sslib_keys.verify_signature(
+            sslib_key,
+            sig.to_dict(),
+            signed_serializer.serialize(metadata.signed),
+        ):
+            raise exceptions.UnsignedMetadataError(
+                "Failed to verify {self.id} signature for metadata",
+                metadata.signed
+            )
 
 
 class Role:

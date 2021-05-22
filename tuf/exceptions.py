@@ -149,7 +149,6 @@ class ReplayedMetadataError(RepositoryError):
     #     repr(self.previous_version) + ', ' + repr(self.current_version) + ')')
 
 
-
 class CryptoError(Error):
   """Indicate any cryptography-related errors."""
 
@@ -250,7 +249,7 @@ class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object."""
 
 
-class UnsignedMetadataError(Error):
+class UnsignedMetadataError(RepositoryError):
   """Indicate metadata object with insufficient threshold of signatures."""
 
   def __init__(self, message, signable):
