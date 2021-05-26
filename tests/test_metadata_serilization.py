@@ -35,6 +35,15 @@ from tuf.api.metadata import (
 
 logger = logging.getLogger(__name__)
 
+def run_sub_tests_with_dataset(dataset):
+    def real_decorator(function):
+        def wrapper(test):
+            for case, data in dataset.items():
+                with test.subTest(case=case):
+                    function(test, data)
+        return wrapper
+    return real_decorator
+
 def copy_recur(input_dict: Dict[str, Any], ignore_attr_list: List[str]):
     """Recursivly make a deep copy of the input_dict ignoring the attributes in
     ignore_attr_list."""
