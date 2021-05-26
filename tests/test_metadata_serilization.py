@@ -195,51 +195,20 @@ class TestSerialization(unittest.TestCase):
                 delegations = Delegations.from_dict(copy.deepcopy(data))
                 self.assertDictEqual(delegations.to_dict(), data)
 
+    valid_delegated_roles = {
+        "no hash prefix attribute":
+            '{"keyids": ["id"], "name": "a", "paths": ["fn1", "fn2"], "terminating": false, "threshold": 1}',
+        "no path attribute":
+            '{"keyids": ["id"], "name": "a", "path_hash_prefixes": ["h1", "h2"], "terminating": false, "threshold": 99}',
+        "no hash or path prefix":
+            '{"keyids": ["id"], "name": "a", "terminating": true, "threshold": 3}',
+    }
 
-    def _setup_delegated_role(
-        self,
-        delegations: Dict[str, Any],
-        ignore_attr: List[str]
-    ):
-        delegated_roles = delegations["roles"]
-        # Delegated roles is a list of dictionaries.
-        # That's why when setting up a new valid case we have to iterate
-        # through the different roles in the list.
-        delegated_roles_res = []
-        for role in delegated_roles:
-            delegated_roles_res.append(copy_recur(role, ignore_attr))
-        return delegated_roles_res
-
-
-    def test_delegated_role_serialization(self):
-        delegations = self.valid_targets_cases["all_attributes"]["delegations"]
-        delegated_roles = delegations["roles"]
-        delegated_roles_no_paths = self._setup_delegated_role(
-            delegations, "paths"
-        )
-        delegated_roles_no_path_hash_prefixes = self._setup_delegated_role(
-            delegations, ["path_hash_prefixes"]
-        )
-
-        for role in delegated_roles_no_path_hash_prefixes:
-            role["paths"] = "foo"
-        delegated_no_optional_attr = self._setup_delegated_role(
-            delegations, ["paths", "path_hash_prefixes"]
-        )
-        valid_delegatedrole_cases = {
-            "all_attributes": delegated_roles,
-            "no_paths": delegated_roles_no_paths,
-            "no_path_hash_prefixes": delegated_roles_no_path_hash_prefixes,
-            "no_optional_attributes": delegated_no_optional_attr
-        }
-        for case, data in valid_delegatedrole_cases.items():
-            for role_d in data:
-                with self.subTest(case=case):
-                    delegatedroles = DelegatedRole.from_dict(
-                        copy.deepcopy(role_d)
-                    )
-                    self.assertDictEqual(delegatedroles.to_dict(), role_d)
-
+    @run_sub_tests_with_dataset(valid_delegated_roles)
+    def test_delegated_role_serialization(self, testcase: str):
+        case_dict = json.loads(testcase)
+        deserialized_role = DelegatedRole.from_dict(copy.copy(case_dict))
+        self.assertDictEqual(case_dict, deserialized_role.to_dict())
 
     def test_targetfile_serialization(self):
         targets = self.valid_targets_cases["all_attributes"]["targets"]
