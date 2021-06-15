@@ -37,7 +37,7 @@ DataSet = Dict[str, str]
 
 # Test runner decorator: Runs the test as a set of N SubTests,
 # (where N is number of items in dataset), feeding the actual test
-# function one data item at a time
+# function one test case at a time
 def run_sub_tests_with_dataset(dataset: Type[DataSet]):
     def real_decorator(function: Callable[["TestSerialization", DataSet], None]):
         def wrapper(test_cls: "TestSerialization"):
