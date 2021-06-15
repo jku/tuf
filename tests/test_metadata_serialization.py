@@ -50,8 +50,6 @@ def run_sub_tests_with_dataset(dataset: Type[DataSet]):
 
 class TestSerialization(unittest.TestCase):
 
-    KEY = '{"keytype": "rsa", "scheme": "rsassa-pss-sha256", \
-        "keyval": {"public": "foo"}}'
     SIGNED_COMMON = '"spec_version": "1.0.0", "version": 1, \
         "expires": "2030-01-01T00:00:00Z"'
 
@@ -79,12 +77,12 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_roots: DataSet = {
-        "all": f'{{ "_type": "root", {SIGNED_COMMON}, \
-            "consistent_snapshot": false, "keys": {{"keyid" : {KEY} }}, \
+        "all": f'{{ "_type": "root", {SIGNED_COMMON}, "consistent_snapshot": false, \
+            "keys": {{"keyid" : {{"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }} }}, \
             "roles": {{ "targets": {{"keyids": ["keyid"], "threshold": 3}} }} \
             }}',
         "no consistent_snapshot": f'{{ "_type": "root", {SIGNED_COMMON}, \
-            "keys": {{"keyid" : {KEY}}}, \
+            "keys": {{"keyid" : {{"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }}}}, \
             "roles": {{ "targets": {{"keyids": ["keyid"], "threshold": 3}} }} \
             }}',
     }
@@ -153,8 +151,8 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_delegations: DataSet = {
-        "all": f'{{"keys": {{"keyid" : {KEY}}}, "roles": [ {{"keyids": ["keyid"], \
-            "name": "a", "terminating": true, "threshold": 3}} ]}}'
+        "all": '{"keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]}'
     }
 
     @run_sub_tests_with_dataset(valid_delegations)
@@ -180,14 +178,16 @@ class TestSerialization(unittest.TestCase):
     valid_targets: DataSet = {
         "all attributes": f'{{"_type": "targets", {SIGNED_COMMON}, \
             "targets": {{ "file.txt": {{"length": 12, "hashes": {{"sha256" : "abc"}} }} }}, \
-            "delegations": {{"keys": {{"keyid" : {KEY}}}, \
+            "delegations": {{"keys": {{"keyid" : {{"keytype": "rsa", \
+                    "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }}}}, \
                 "roles": [ {{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}} ]}} \
             }}',
         "empty targets": f'{{"_type": "targets", {SIGNED_COMMON}, \
             "targets": {{}}, \
-            "delegations": {{"keys": {{"keyid" : {KEY}}}, \
-                "roles": [ {{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}} ] \
-            }} }}',
+            "delegations": {{"keys": {{"keyid" : {{"keytype": "rsa", \
+                    "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }}}}, \
+                "roles": [ {{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}} ]}} \
+            }}',
         "no delegations": f'{{"_type": "targets", {SIGNED_COMMON}, \
             "targets":  {{ "file.txt": {{"length": 12, "hashes": {{"sha256" : "abc"}} }} }} \
             }}'
