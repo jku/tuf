@@ -25,12 +25,15 @@ from typing import (
     BinaryIO,
     ClassVar,
     Dict,
+    Generic,
     List,
     Mapping,
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
+    cast,
 )
 
 from securesystemslib import hash as sslib_hash
@@ -41,6 +44,7 @@ from securesystemslib.util import persist_temp_file
 
 from tuf import exceptions
 from tuf.api.serialization import (
+    DeserializationError,
     MetadataDeserializer,
     MetadataSerializer,
     SignedSerializer,
@@ -55,8 +59,11 @@ from tuf.api.serialization import (
 # files to have the same major version (the first number) as ours.
 SPECIFICATION_VERSION = ["1", "0", "19"]
 
+# T is a Generic type constraint for Metadata.signed
+T = TypeVar("T", "Root", "Timestamp", "Snapshot", "Targets")
 
-class Metadata:
+
+class Metadata(Generic[T]):
     """A container for signed TUF metadata.
 
     Provides methods to convert to and from dictionary, read and write to and
@@ -73,7 +80,8 @@ class Metadata:
     def __init__(
         self, signed: "Signed", signatures: "OrderedDict[str, Signature]"
     ):
-        self.signed = signed
+        # init does not verify type constraint T: only from_bytes() does
+        self.signed: T = cast(T, signed)
         self.signatures = signatures
 
     @classmethod
@@ -123,13 +131,13 @@ class Metadata:
             signatures=signatures,
         )
 
-    @classmethod
+    @staticmethod
     def from_file(
-        cls,
         filename: str,
         deserializer: Optional[MetadataDeserializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None,
-    ) -> "Metadata":
+        signed_type: Optional[Type[T]] = None,
+    ) -> "Metadata[T]":
         """Loads TUF metadata from file storage.
 
         Arguments:
@@ -140,6 +148,7 @@ class Metadata:
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
+            signed_type: Optional; Expected type of deserialized signed object.
 
         Raises:
             securesystemslib.exceptions.StorageError: The file cannot be read.
@@ -153,20 +162,22 @@ class Metadata:
         if storage_backend is None:
             storage_backend = FilesystemBackend()
 
-        with storage_backend.get(filename) as file_obj:
-            return cls.from_bytes(file_obj.read(), deserializer)
+        with storage_backend.get(filename) as f:
+            return Metadata.from_bytes(f.read(), deserializer, signed_type)
 
     @staticmethod
     def from_bytes(
         data: bytes,
         deserializer: Optional[MetadataDeserializer] = None,
-    ) -> "Metadata":
+        signed_type: Optional[Type[T]] = None,
+    ) -> "Metadata[T]":
         """Loads TUF metadata from raw data.
 
         Arguments:
             data: metadata content as bytes.
             deserializer: Optional; A MetadataDeserializer instance that
                 implements deserialization. Default is JSONDeserializer.
+            signed_type: Optional; Expected type of deserialized signed object.
 
         Raises:
             tuf.api.serialization.DeserializationError:
@@ -183,7 +194,14 @@ class Metadata:
 
             deserializer = JSONDeserializer()
 
-        return deserializer.deserialize(data)
+        md = deserializer.deserialize(data)
+
+        # Ensure deserialized signed type matches the requested type
+        if signed_type is not None and signed_type != type(md.signed):
+            raise DeserializationError(
+                f"Expected {signed_type}, got {type(md.signed)}"
+            )
+        return md
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""

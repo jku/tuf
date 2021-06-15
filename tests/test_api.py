@@ -134,6 +134,23 @@ class TestMetadata(unittest.TestCase):
         os.remove(bad_metadata_path)
 
 
+    def test_typed_read(self):
+        path = os.path.join(self.repo_dir, 'metadata', 'root.json')
+        with open(path, 'rb') as f:
+            data = f.read()
+
+        # Loading a root file as "Metadata[Root]" succeeds
+        md = Metadata.from_bytes(data, signed_type=Root)
+        md2 = Metadata.from_file(path, signed_type=Root)
+
+        # Loading the file fails with non-"Root" type constraints
+        for expected_type in [Timestamp, Snapshot, Targets]:
+            with self.assertRaises(DeserializationError):
+                Metadata.from_bytes(data, signed_type=expected_type)
+            with self.assertRaises(DeserializationError):
+                Metadata.from_file(path, signed_type=expected_type)
+
+
     def test_compact_json(self):
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
         metadata_obj = Metadata.from_file(path)
