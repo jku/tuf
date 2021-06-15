@@ -50,9 +50,6 @@ def run_sub_tests_with_dataset(dataset: Type[DataSet]):
 
 class TestSerialization(unittest.TestCase):
 
-    SIGNED_COMMON = '"spec_version": "1.0.0", "version": 1, \
-        "expires": "2030-01-01T00:00:00Z"'
-
     valid_keys: DataSet = {
         "all": '{"keytype": "rsa", "scheme": "rsassa-pss-sha256", \
             "keyval": {"public": "foo"}}',
@@ -77,14 +74,16 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_roots: DataSet = {
-        "all": f'{{ "_type": "root", {SIGNED_COMMON}, "consistent_snapshot": false, \
-            "keys": {{"keyid" : {{"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }} }}, \
-            "roles": {{ "targets": {{"keyids": ["keyid"], "threshold": 3}} }} \
-            }}',
-        "no consistent_snapshot": f'{{ "_type": "root", {SIGNED_COMMON}, \
-            "keys": {{"keyid" : {{"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }}}}, \
-            "roles": {{ "targets": {{"keyids": ["keyid"], "threshold": 3}} }} \
-            }}',
+        "all": '{"_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", "consistent_snapshot": false, \
+            "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"}}}, \
+            "roles": { "targets": {"keyids": ["keyid"], "threshold": 3}} \
+            }',
+        "no consistent_snapshot": '{ "_type": "root", "spec_version": "1.0.0", "version": 1, \
+            "expires": "2030-01-01T00:00:00Z", \
+            "keys": {"keyid" : {"keytype": "rsa", "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
+            "roles": { "targets": {"keyids": ["keyid"], "threshold": 3} } \
+            }',
     }
 
     @run_sub_tests_with_dataset(valid_roots)
@@ -107,9 +106,8 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_timestamps: DataSet = {
-        "all": f'{{ "_type": "timestamp", {SIGNED_COMMON}, \
-            "meta": {{ "snapshot.json": {{ "hashes": {{"sha256" : "abc"}}, "version": 1 }} }} \
-            }}'
+        "all": '{ "_type": "timestamp", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "meta": {"snapshot.json": {"hashes": {"sha256" : "abc"}, "version": 1}}}'
     }
 
     @run_sub_tests_with_dataset(valid_timestamps)
@@ -120,9 +118,8 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_snapshots: DataSet = {
-        "all": f'{{ "_type": "snapshot", {SIGNED_COMMON}, \
-            "meta": {{ "file.txt": \
-            {{ "hashes": {{"sha256" : "abc"}}, "version": 1 }} }} }}'
+        "all": '{ "_type": "snapshot", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "meta": { "file.txt": { "hashes": {"sha256" : "abc"}, "version": 1 }}}'
     }
 
     @run_sub_tests_with_dataset(valid_snapshots)
@@ -176,21 +173,21 @@ class TestSerialization(unittest.TestCase):
 
 
     valid_targets: DataSet = {
-        "all attributes": f'{{"_type": "targets", {SIGNED_COMMON}, \
-            "targets": {{ "file.txt": {{"length": 12, "hashes": {{"sha256" : "abc"}} }} }}, \
-            "delegations": {{"keys": {{"keyid" : {{"keytype": "rsa", \
-                    "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }}}}, \
-                "roles": [ {{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}} ]}} \
-            }}',
-        "empty targets": f'{{"_type": "targets", {SIGNED_COMMON}, \
-            "targets": {{}}, \
-            "delegations": {{"keys": {{"keyid" : {{"keytype": "rsa", \
-                    "scheme": "rsassa-pss-sha256", "keyval": {{"public": "foo"}} }}}}, \
-                "roles": [ {{"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3}} ]}} \
-            }}',
-        "no delegations": f'{{"_type": "targets", {SIGNED_COMMON}, \
-            "targets":  {{ "file.txt": {{"length": 12, "hashes": {{"sha256" : "abc"}} }} }} \
-            }}'
+        "all attributes": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "targets": { "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} } }, \
+            "delegations": {"keys": {"keyid" : {"keytype": "rsa", \
+                    "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
+                "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]} \
+            }',
+        "empty targets": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "targets": {}, \
+            "delegations": {"keys": {"keyid" : {"keytype": "rsa", \
+                    "scheme": "rsassa-pss-sha256", "keyval": {"public": "foo"} }}, \
+                "roles": [ {"keyids": ["keyid"], "name": "a", "terminating": true, "threshold": 3} ]} \
+            }',
+        "no delegations": '{"_type": "targets", "spec_version": "1.0.0", "version": 1, "expires": "2030-01-01T00:00:00Z", \
+            "targets":  { "file.txt": {"length": 12, "hashes": {"sha256" : "abc"} } } \
+            }'
     }
 
     @run_sub_tests_with_dataset(valid_targets)
