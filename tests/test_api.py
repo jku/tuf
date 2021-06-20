@@ -177,7 +177,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_sign_verify(self):
         root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
-        root:Root = Metadata.from_file(root_path).signed
+        root = Metadata.from_file(root_path, signed_type=Root).signed
 
         # Locate the public keys we need from root
         targets_keyid = next(iter(root.roles["targets"].keyids))
@@ -189,7 +189,7 @@ class TestMetadata(unittest.TestCase):
 
         # Load sample metadata (targets) and assert ...
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
-        metadata_obj = Metadata.from_file(path)
+        metadata_obj = Metadata.from_file(path, signed_type=Targets)
 
         # ... it has a single existing signature,
         self.assertEqual(len(metadata_obj.signatures), 1)
@@ -306,7 +306,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
-        snapshot = Metadata.from_file(snapshot_path)
+        snapshot = Metadata.from_file(snapshot_path, signed_type=Snapshot)
 
         # Create a MetaFile instance representing what we expect
         # the updated data to be.
@@ -332,7 +332,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
                 self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_file(timestamp_path)
+        timestamp = Metadata.from_file(timestamp_path, signed_type=Timestamp)
 
         self.assertEqual(timestamp.signed.version, 1)
         timestamp.signed.bump_version()
@@ -441,7 +441,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_root(self):
         root_path = os.path.join(
                 self.repo_dir, 'metadata', 'root.json')
-        root = Metadata.from_file(root_path)
+        root = Metadata.from_file(root_path, signed_type=Root)
 
         # Add a second key to root role
         root_key2 =  import_ed25519_publickey_from_file(
@@ -579,7 +579,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_targets(self):
         targets_path = os.path.join(
                 self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path)
+        targets = Metadata.from_file(targets_path, signed_type=Targets)
 
         # Create a fileinfo dict representing what we expect the updated data to be
         filename = 'file2.txt'
@@ -668,7 +668,7 @@ class TestMetadata(unittest.TestCase):
         # for untrusted metadata file to verify.
         timestamp_path = os.path.join(
             self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_file(timestamp_path)
+        timestamp = Metadata.from_file(timestamp_path, signed_type=Timestamp)
         snapshot_metafile = timestamp.signed.meta["snapshot.json"]
 
         snapshot_path = os.path.join(
@@ -702,7 +702,7 @@ class TestMetadata(unittest.TestCase):
         # Test target files' hash and length verification
         targets_path = os.path.join(
             self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path)
+        targets = Metadata.from_file(targets_path, signed_type=Targets)
         file1_targetfile = targets.signed.targets['file1.txt']
         filepath = os.path.join(
             self.repo_dir, 'targets', 'file1.txt')
