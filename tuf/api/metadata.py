@@ -77,11 +77,8 @@ class Metadata(Generic[T]):
             signing the canonical serialized representation of 'signed'.
     """
 
-    def __init__(
-        self, signed: "Signed", signatures: "OrderedDict[str, Signature]"
-    ):
-        # init does not verify type constraint T: only from_bytes() does
-        self.signed: T = cast(T, signed)
+    def __init__(self, signed: T, signatures: "OrderedDict[str, Signature]"):
+        self.signed: T = signed
         self.signatures = signatures
 
     @classmethod
@@ -127,7 +124,8 @@ class Metadata(Generic[T]):
             signatures[sig.keyid] = sig
 
         return cls(
-            signed=inner_cls.from_dict(metadata.pop("signed")),
+            # Specific type T is not known at static type check time: cast
+            signed=cast(T, inner_cls.from_dict(metadata.pop("signed"))),
             signatures=signatures,
         )
 
