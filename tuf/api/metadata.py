@@ -69,6 +69,19 @@ class Metadata(Generic[T]):
     Provides methods to convert to and from dictionary, read and write to and
     from file and to create and verify metadata signatures.
 
+    Metadata[T] is a generic container type where T can be any one type of
+    [Root, Timestamp, Snapshot, Targets]. The purpose of this is to allow
+    type checking of the signed attribute in code using Metadata::
+
+        root_md = Metadata.from_file("root.json", signed_type=Root)
+        # root_md type is now Metadata[Root]. This means signed and its
+        # attributes like consistent_snapshot are now statically typed and the
+        # types can be verified by static type checkers and shown by IDEs
+        print(root_md.signed.consistent_snapshot)
+
+    Using the signed_type argument in factory constructors is not required but
+    not doing so means T is not a specific type so static typing cannot happen.
+
     Attributes:
         signed: A subclass of Signed, which has the actual metadata payload,
             i.e. one of Targets, Snapshot, Timestamp or Root.
