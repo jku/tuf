@@ -140,15 +140,15 @@ class TestMetadata(unittest.TestCase):
             data = f.read()
 
         # Loading a root file as "Metadata[Root]" succeeds
-        md = Metadata.from_bytes(data, signed_type=Root)
-        md2 = Metadata.from_file(path, signed_type=Root)
+        md = Root.metadata_from_bytes(data)
+        md2 = Root.metadata_from_file(path)
 
         # Loading the file fails with non-"Root" type constraints
         for expected_type in [Timestamp, Snapshot, Targets]:
             with self.assertRaises(DeserializationError):
-                Metadata.from_bytes(data, signed_type=expected_type)
+                expected_type.metadata_from_bytes(data)
             with self.assertRaises(DeserializationError):
-                Metadata.from_file(path, signed_type=expected_type)
+                expected_type.metadata_from_file(path)
 
 
     def test_compact_json(self):
@@ -177,7 +177,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_sign_verify(self):
         root_path = os.path.join(self.repo_dir, 'metadata', 'root.json')
-        root = Metadata.from_file(root_path, signed_type=Root).signed
+        root = Root.metadata_from_file(root_path).signed
 
         # Locate the public keys we need from root
         targets_keyid = next(iter(root.roles["targets"].keyids))
@@ -189,7 +189,7 @@ class TestMetadata(unittest.TestCase):
 
         # Load sample metadata (targets) and assert ...
         path = os.path.join(self.repo_dir, 'metadata', 'targets.json')
-        metadata_obj = Metadata.from_file(path, signed_type=Targets)
+        metadata_obj = Targets.metadata_from_file(path)
 
         # ... it has a single existing signature,
         self.assertEqual(len(metadata_obj.signatures), 1)
@@ -306,7 +306,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_snapshot(self):
         snapshot_path = os.path.join(
                 self.repo_dir, 'metadata', 'snapshot.json')
-        snapshot = Metadata.from_file(snapshot_path, signed_type=Snapshot)
+        snapshot = Snapshot.metadata_from_file(snapshot_path)
 
         # Create a MetaFile instance representing what we expect
         # the updated data to be.
@@ -332,7 +332,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_timestamp(self):
         timestamp_path = os.path.join(
                 self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_file(timestamp_path, signed_type=Timestamp)
+        timestamp = Timestamp.metadata_from_file(timestamp_path)
 
         self.assertEqual(timestamp.signed.version, 1)
         timestamp.signed.bump_version()
@@ -441,7 +441,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_root(self):
         root_path = os.path.join(
                 self.repo_dir, 'metadata', 'root.json')
-        root = Metadata.from_file(root_path, signed_type=Root)
+        root = Root.metadata_from_file(root_path)
 
         # Add a second key to root role
         root_key2 =  import_ed25519_publickey_from_file(
@@ -579,7 +579,7 @@ class TestMetadata(unittest.TestCase):
     def test_metadata_targets(self):
         targets_path = os.path.join(
                 self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path, signed_type=Targets)
+        targets = Targets.metadata_from_file(targets_path)
 
         # Create a fileinfo dict representing what we expect the updated data to be
         filename = 'file2.txt'
@@ -668,7 +668,7 @@ class TestMetadata(unittest.TestCase):
         # for untrusted metadata file to verify.
         timestamp_path = os.path.join(
             self.repo_dir, 'metadata', 'timestamp.json')
-        timestamp = Metadata.from_file(timestamp_path, signed_type=Timestamp)
+        timestamp = Timestamp.metadata_from_file(timestamp_path)
         snapshot_metafile = timestamp.signed.meta["snapshot.json"]
 
         snapshot_path = os.path.join(
@@ -702,7 +702,7 @@ class TestMetadata(unittest.TestCase):
         # Test target files' hash and length verification
         targets_path = os.path.join(
             self.repo_dir, 'metadata', 'targets.json')
-        targets = Metadata.from_file(targets_path, signed_type=Targets)
+        targets = Targets.metadata_from_file(targets_path)
         file1_targetfile = targets.signed.targets['file1.txt']
         filepath = os.path.join(
             self.repo_dir, 'targets', 'file1.txt')
