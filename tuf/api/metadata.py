@@ -73,14 +73,11 @@ class Metadata(Generic[T]):
     [Root, Timestamp, Snapshot, Targets]. The purpose of this is to allow
     type checking of the signed attribute in code using Metadata::
 
-        root_md = Metadata.from_file("root.json", signed_type=Root)
-        # root_md type is now Metadata[Root]. This means signed and its
+        root_md = Root.metadata_from_file("root.json")
+        print(root_md.signed.consistent_snapshot)
+        # root_md type is now Metadata[Root]. This means root_md.signed and its
         # attributes like consistent_snapshot are now statically typed and the
         # types can be verified by static type checkers and shown by IDEs
-        print(root_md.signed.consistent_snapshot)
-
-    Using the signed_type argument in factory constructors is not required but
-    not doing so means T is not a specific type so static typing cannot happen.
 
     Attributes:
         signed: A subclass of Signed, which has the actual metadata payload,
@@ -147,7 +144,6 @@ class Metadata(Generic[T]):
         filename: str,
         deserializer: Optional[MetadataDeserializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None,
-        signed_type: Optional[Type[T]] = None,
     ) -> "Metadata[T]":
         """Loads TUF metadata from file storage.
 
@@ -159,7 +155,6 @@ class Metadata(Generic[T]):
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
-            signed_type: Optional; Expected type of deserialized signed object.
 
         Raises:
             securesystemslib.exceptions.StorageError: The file cannot be read.
@@ -174,13 +169,12 @@ class Metadata(Generic[T]):
             storage_backend = FilesystemBackend()
 
         with storage_backend.get(filename) as f:
-            return Metadata.from_bytes(f.read(), deserializer, signed_type)
+            return Metadata.from_bytes(f.read(), deserializer)
 
     @staticmethod
     def from_bytes(
         data: bytes,
         deserializer: Optional[MetadataDeserializer] = None,
-        signed_type: Optional[Type[T]] = None,
     ) -> "Metadata[T]":
         """Loads TUF metadata from raw data.
 
@@ -188,7 +182,6 @@ class Metadata(Generic[T]):
             data: metadata content as bytes.
             deserializer: Optional; A MetadataDeserializer instance that
                 implements deserialization. Default is JSONDeserializer.
-            signed_type: Optional; Expected type of deserialized signed object.
 
         Raises:
             tuf.api.serialization.DeserializationError:
@@ -205,14 +198,7 @@ class Metadata(Generic[T]):
 
             deserializer = JSONDeserializer()
 
-        md = deserializer.deserialize(data)
-
-        # Ensure deserialized signed type matches the requested type
-        if signed_type is not None and signed_type != type(md.signed):
-            raise DeserializationError(
-                f"Expected {signed_type}, got {type(md.signed)}"
-            )
-        return md
+        return deserializer.deserialize(data)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -363,6 +349,60 @@ class Signed(metaclass=abc.ABCMeta):
     def to_dict(self) -> Dict[str, Any]:
         """Serialization helper that returns dict representation of self"""
         raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
+    def metadata_from_bytes(
+        cls,
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> Metadata:
+        """Loads a Metadata object from bytes.
+
+        Like Metadata.from_bytes() but also raises DeserializationError if
+        bytes does not contain the correct metadata type."""
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
+    def metadata_from_file(
+        cls,
+        filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None,
+    ) -> Metadata:
+        """Loads a Metadata object from file.
+
+        Like Metadata.from_file() but also raises DeserializationError if
+        file does not contain the correct metadata type."""
+        raise NotImplementedError
+
+    @classmethod
+    def _metadata_from_bytes(
+        cls, data: bytes, deserializer: Optional[MetadataDeserializer]
+    ) -> Metadata:
+        """Like Metadata.from_bytes() but raises on wrong type"""
+        metadata = Metadata.from_bytes(data, deserializer)
+        if not isinstance(metadata.signed, cls):
+            raise DeserializationError(
+                f"Expected {cls}, got {type(metadata.signed)}"
+            )
+        return metadata
+
+    @classmethod
+    def _metadata_from_file(
+        cls,
+        filename: str,
+        deserializer: Optional[MetadataDeserializer],
+        storage_backend: Optional[StorageBackendInterface],
+    ) -> Metadata:
+        """Like Metadata.from_file() but raises on wrong type"""
+        metadata = Metadata.from_file(filename, deserializer, storage_backend)
+        if not isinstance(metadata.signed, cls):
+            raise DeserializationError(
+                f"Expected {cls}, got {type(metadata.signed)}"
+            )
+        return metadata
 
     @classmethod
     @abc.abstractmethod
@@ -633,6 +673,31 @@ class Root(Signed):
         self.roles = roles
 
     @classmethod
+    def metadata_from_bytes(
+        cls,
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> Metadata["Root"]:
+        """Loads a Metadata[Root] from raw data.
+
+        Like Metadata.from_bytes() but also raises DeserializationError if
+        bytes does not contain root metadata."""
+        return cls._metadata_from_bytes(data, deserializer)
+
+    @classmethod
+    def metadata_from_file(
+        cls,
+        filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None,
+    ) -> Metadata["Root"]:
+        """Loads a Metadata[Root] from file.
+
+        Like Metadata.from_file() but also raises DeserializationError if file
+        does not contain root metadata."""
+        return cls._metadata_from_file(filename, deserializer, storage_backend)
+
+    @classmethod
     def from_dict(cls, signed_dict: Dict[str, Any]) -> "Root":
         """Creates Root object from its dict representation."""
         common_args = cls._common_fields_from_dict(signed_dict)
@@ -846,6 +911,31 @@ class Timestamp(Signed):
         # All fields left in the timestamp_dict are unrecognized.
         return cls(*common_args, meta, signed_dict)
 
+    @classmethod
+    def metadata_from_bytes(
+        cls,
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> Metadata["Timestamp"]:
+        """Loads a Metadata[Timestamp] from raw data.
+
+        Like Metadata.from_bytes() but also raises DeserializationError if
+        bytes does not contain timestamp metadata."""
+        return cls._metadata_from_bytes(data, deserializer)
+
+    @classmethod
+    def metadata_from_file(
+        cls,
+        filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None,
+    ) -> Metadata["Timestamp"]:
+        """Loads a Metadata[Timestamp] from file.
+
+        Like Metadata.from_file() but also raises DeserializationError if file
+        does not contain timestamp metadata."""
+        return cls._metadata_from_file(filename, deserializer, storage_backend)
+
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
         res_dict = self._common_fields_to_dict()
@@ -897,6 +987,31 @@ class Snapshot(Signed):
             meta[meta_path] = MetaFile.from_dict(meta_dict)
         # All fields left in the snapshot_dict are unrecognized.
         return cls(*common_args, meta, signed_dict)
+
+    @classmethod
+    def metadata_from_bytes(
+        cls,
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> Metadata["Snapshot"]:
+        """Loads a Metadata[Snapshot] from raw data.
+
+        Like Metadata.from_bytes() but also raises DeserializationError if
+        bytes does not contain snapshot metadata."""
+        return cls._metadata_from_bytes(data, deserializer)
+
+    @classmethod
+    def metadata_from_file(
+        cls,
+        filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None,
+    ) -> Metadata["Snapshot"]:
+        """Loads a Metadata[Snapshot] from file.
+
+        Like Metadata.from_file() but also raises DeserializationError if file
+        does not contain snapshot metadata."""
+        return cls._metadata_from_file(filename, deserializer, storage_backend)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -1160,6 +1275,31 @@ class Targets(Signed):
             res_targets[target_path] = TargetFile.from_dict(target_info)
         # All fields left in the targets_dict are unrecognized.
         return cls(*common_args, res_targets, delegations, signed_dict)
+
+    @classmethod
+    def metadata_from_bytes(
+        cls,
+        data: bytes,
+        deserializer: Optional[MetadataDeserializer] = None,
+    ) -> Metadata["Targets"]:
+        """Loads a Metadata[Targets] from raw data.
+
+        Like Metadata.from_bytes() but also raises DeserializationError if
+        bytes does not contain targets metadata."""
+        return cls._metadata_from_bytes(data, deserializer)
+
+    @classmethod
+    def metadata_from_file(
+        cls,
+        filename: str,
+        deserializer: Optional[MetadataDeserializer] = None,
+        storage_backend: Optional[StorageBackendInterface] = None,
+    ) -> Metadata["Targets"]:
+        """Loads a Metadata[Targets] from file.
+
+        Like Metadata.from_file() but also raises DeserializationError if file
+        does not contain targets metadata."""
+        return cls._metadata_from_file(filename, deserializer, storage_backend)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
