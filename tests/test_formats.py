@@ -172,23 +172,6 @@ class TestFormats(unittest.TestCase):
                                    'keyval': {'public': 'pubkey',
                                               'private': 'privkey'}}}),
 
-      'SCPCONFIG_SCHEMA': (tuf.formats.SCPCONFIG_SCHEMA,
-                           {'general': {'transfer_module': 'scp',
-                                        'metadata_path': '/path/meta.json',
-                                        'targets_directory': '/targets'},
-                            'scp': {'host': 'http://localhost:8001',
-                                    'user': 'McFly',
-                                    'identity_file': '/home/.ssh/file',
-                                    'remote_directory': '/home/McFly'}}),
-
-      'RECEIVECONFIG_SCHEMA': (tuf.formats.RECEIVECONFIG_SCHEMA,
-                               {'general': {'transfer_module': 'scp',
-                                            'pushroots': ['/pushes'],
-                                            'repository_directory': '/repo',
-                                            'metadata_directory': '/repo/meta',
-                                            'targets_directory': '/repo/targets',
-                                            'backup_directory': '/repo/backup'}}),
-
       'ROLE_SCHEMA': (tuf.formats.ROLE_SCHEMA,
                       {'keyids': ['123abc'],
                        'threshold': 1,

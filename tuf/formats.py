@@ -137,20 +137,6 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = ROLENAME_SCHEMA,
   value_schema = ROLE_SCHEMA)
 
-# A dictionary of ROLEDICT, where dictionary keys can be repository names, and
-# dictionary values containing information for each role available on the
-# repository (corresponding to the repository belonging to named repository in
-# the dictionary key)
-ROLEDICTDB_SCHEMA = SCHEMA.DictOf(
-  key_schema = sslib_formats.NAME_SCHEMA,
-  value_schema = ROLEDICT_SCHEMA)
-
-# Command argument list, as used by the CLI tool.
-# Example: {'keytype': ed25519, 'expires': 365,}
-COMMAND_SCHEMA = SCHEMA.DictOf(
-  key_schema = sslib_formats.NAME_SCHEMA,
-  value_schema = SCHEMA.Any())
-
 # A dictionary holding version information.
 VERSION_SCHEMA = SCHEMA.Object(
   object_name = 'VERSION_SCHEMA',
@@ -408,8 +394,8 @@ MIRRORDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = SCHEMA.AnyString(),
   value_schema = MIRROR_SCHEMA)
 
-# A Mirrorlist: indicates all the live mirrors, and what documents they
-# serve.
+# mirrors role: Optional currently unimplemented role that contains
+# information about repository mirrors and their contents
 MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
   _type = SCHEMA.String('mirrors'),
@@ -419,43 +405,7 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
 
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
 ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,
-                               TIMESTAMP_SCHEMA, MIRROR_SCHEMA])
-
-# The format of the resulting "scp config dict" after extraction from the
-# push configuration file (i.e., push.cfg).  In the case of a config file
-# utilizing the scp transfer module, it must contain the 'general' and 'scp'
-# sections, where 'general' must contain a 'transfer_module' and
-# 'metadata_path' entry, and 'scp' the 'host', 'user', 'identity_file', and
-# 'remote_directory' entries.
-SCPCONFIG_SCHEMA = SCHEMA.Object(
-  object_name = 'SCPCONFIG_SCHEMA',
-  general = SCHEMA.Object(
-    object_name = '[general]',
-    transfer_module = SCHEMA.String('scp'),
-    metadata_path = sslib_formats.PATH_SCHEMA,
-    targets_directory = sslib_formats.PATH_SCHEMA),
-  scp=SCHEMA.Object(
-    object_name = '[scp]',
-    host = sslib_formats.URL_SCHEMA,
-    user = sslib_formats.NAME_SCHEMA,
-    identity_file = sslib_formats.PATH_SCHEMA,
-    remote_directory = sslib_formats.PATH_SCHEMA))
-
-# The format of the resulting "receive config dict" after extraction from the
-# receive configuration file (i.e., receive.cfg).  The receive config file
-# must contain a 'general' section, and this section the 'pushroots',
-# 'repository_directory', 'metadata_directory', 'targets_directory', and
-# 'backup_directory' entries.
-RECEIVECONFIG_SCHEMA = SCHEMA.Object(
-  object_name = 'RECEIVECONFIG_SCHEMA', general=SCHEMA.Object(
-    object_name = '[general]',
-    pushroots = SCHEMA.ListOf(sslib_formats.PATH_SCHEMA),
-    repository_directory = sslib_formats.PATH_SCHEMA,
-    metadata_directory = sslib_formats.PATH_SCHEMA,
-    targets_directory = sslib_formats.PATH_SCHEMA,
-    backup_directory = sslib_formats.PATH_SCHEMA))
-
-
+                               TIMESTAMP_SCHEMA, MIRRORLIST_SCHEMA])
 
 def make_signable(role_schema):
   """
