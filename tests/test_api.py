@@ -107,7 +107,7 @@ class TestMetadata(unittest.TestCase):
             path = os.path.join(self.repo_dir, 'metadata', metadata + '.json')
             metadata_obj = Metadata.from_file(path)
             with open(path, 'rb') as f:
-                metadata_obj2 = Metadata.from_bytes(f.read())
+                metadata_obj2 = Metadata.from_bytes(metadata, f.read())
 
             # Assert that both methods instantiate the right inner class for
             # each metadata type and ...
@@ -130,7 +130,7 @@ class TestMetadata(unittest.TestCase):
         with self.assertRaises(DeserializationError):
             Metadata.from_file(bad_metadata_path)
         with self.assertRaises(DeserializationError):
-            Metadata.from_bytes(bad_string)
+            Metadata.from_bytes(metadata, bad_string)
 
         os.remove(bad_metadata_path)
 
@@ -150,7 +150,8 @@ class TestMetadata(unittest.TestCase):
 
             path_2 = path + '.tmp'
             metadata_obj.to_file(path_2)
-            metadata_obj_2 = Metadata.from_file(path_2)
+            # unusual filename: specify rolename explicitly
+            metadata_obj_2 = Metadata.from_file(path_2, rolename=metadata)
 
             self.assertDictEqual(
                     metadata_obj.to_dict(),
@@ -274,7 +275,7 @@ class TestMetadata(unittest.TestCase):
         data = md.to_dict()
         data["signatures"].append({"keyid": data["signatures"][0]["keyid"], "sig": "foo"})
         with self.assertRaises(ValueError):
-            Metadata.from_dict(data)
+            Metadata.from_dict(md.rolename, data)
 
 
     def test_metadata_snapshot(self):
@@ -351,34 +352,30 @@ class TestMetadata(unittest.TestCase):
         role2 = Metadata.from_file(role2_path)
 
         # test the expected delegation tree
-        root.verify_delegate('root', root)
-        root.verify_delegate('snapshot', snapshot)
-        root.verify_delegate('targets', targets)
-        targets.verify_delegate('role1', role1)
-        role1.verify_delegate('role2', role2)
+        root.verify_delegate(root)
+        root.verify_delegate(snapshot)
+        root.verify_delegate(targets)
+        targets.verify_delegate(role1)
+        role1.verify_delegate(role2)
 
         # only root and targets can verify delegates
         with self.assertRaises(TypeError):
-            snapshot.verify_delegate('snapshot', snapshot)
+            snapshot.verify_delegate(snapshot)
         # verify fails for roles that are not delegated by delegator
         with self.assertRaises(ValueError):
-            root.verify_delegate('role1', role1)
+            root.verify_delegate(role1)
         with self.assertRaises(ValueError):
-            targets.verify_delegate('targets', targets)
+            targets.verify_delegate(targets)
         # verify fails when delegator has no delegations
         with self.assertRaises(ValueError):
-            role2.verify_delegate('role1', role1)
+            role2.verify_delegate(role1)
 
         # verify fails when delegate content is modified
         expires = snapshot.signed.expires
         snapshot.signed.bump_expiration()
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate('snapshot', snapshot)
+            root.verify_delegate(snapshot)
         snapshot.signed.expires = expires
-
-        # verify fails if roles keys do not sign the metadata
-        with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate('timestamp', snapshot)
 
         # Add a key to snapshot role, make sure the new sig fails to verify
         ts_keyid = next(iter(root.signed.roles["timestamp"].keyids))
@@ -387,17 +384,17 @@ class TestMetadata(unittest.TestCase):
 
         # verify succeeds if threshold is reached even if some signatures
         # fail to verify
-        root.verify_delegate('snapshot', snapshot)
+        root.verify_delegate(snapshot)
 
         # verify fails if threshold of signatures is not reached
         root.signed.roles['snapshot'].threshold = 2
         with self.assertRaises(exceptions.UnsignedMetadataError):
-            root.verify_delegate('snapshot', snapshot)
+            root.verify_delegate(snapshot)
 
         # verify succeeds when we correct the new signature and reach the
         # threshold of 2 keys
         snapshot.sign(SSlibSigner(self.keystore['timestamp']), append=True)
-        root.verify_delegate('snapshot', snapshot)
+        root.verify_delegate(snapshot)
 
 
     def test_key_class(self):

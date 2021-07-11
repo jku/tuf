@@ -196,7 +196,7 @@ class TrustedMetadataSet(abc.Mapping):
         logger.debug("Updating root")
 
         try:
-            new_root = Metadata.from_bytes(data)
+            new_root = Metadata.from_bytes("root", data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load root") from e
 
@@ -261,7 +261,7 @@ class TrustedMetadataSet(abc.Mapping):
             raise RuntimeError("Cannot update timestamp after snapshot")
 
         try:
-            new_timestamp = Metadata.from_bytes(data)
+            new_timestamp = Metadata.from_bytes("timestamp", data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load timestamp") from e
 
@@ -330,7 +330,7 @@ class TrustedMetadataSet(abc.Mapping):
             ) from e
 
         try:
-            new_snapshot = Metadata.from_bytes(data)
+            new_snapshot = Metadata.from_bytes("snapshot", data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 
@@ -429,7 +429,7 @@ class TrustedMetadataSet(abc.Mapping):
             ) from e
 
         try:
-            new_delegate = Metadata.from_bytes(data)
+            new_delegate = Metadata.from_bytes(role_name, data)
         except DeserializationError as e:
             raise exceptions.RepositoryError("Failed to load snapshot") from e
 

@@ -85,7 +85,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
         with self.assertRaises(exceptions.RepositoryError):
             TrustedMetadataSet(b"")
         # root.json is invalid
-        root = Metadata.from_bytes(data["root"])
+        root = Metadata.from_bytes("root", data["root"])
         root.signed.version += 1
         with self.assertRaises(exceptions.RepositoryError):
             TrustedMetadataSet(json.dumps(root.to_dict()).encode())
@@ -94,16 +94,16 @@ class TestTrustedMetadataSet(unittest.TestCase):
         trusted_set.root_update_finished()
 
         top_level_md = [
-            (data["timestamp"], trusted_set.update_timestamp),
-            (data["snapshot"], trusted_set.update_snapshot),
-            (data["targets"], trusted_set.update_targets),
+            ("timestamp", trusted_set.update_timestamp),
+            ("snapshot", trusted_set.update_snapshot),
+            ("targets", trusted_set.update_targets),
         ]
-        for metadata, update_func in top_level_md:
+        for rolename, update_func in top_level_md:
             # metadata is not json
             with self.assertRaises(exceptions.RepositoryError):
                 update_func(b"")
             # metadata is invalid
-            md = Metadata.from_bytes(metadata)
+            md = Metadata.from_bytes(rolename, data[rolename])
             md.signed.version += 1
             with self.assertRaises(exceptions.RepositoryError):
                 update_func(json.dumps(md.to_dict()).encode())
@@ -112,7 +112,7 @@ class TestTrustedMetadataSet(unittest.TestCase):
             with self.assertRaises(exceptions.RepositoryError):
                 update_func(data["root"])
 
-            update_func(metadata)
+            update_func(data[rolename])
 
 
     # TODO test updating over initial metadata (new keys, newer timestamp, etc)

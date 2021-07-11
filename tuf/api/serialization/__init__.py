@@ -35,7 +35,7 @@ class MetadataDeserializer(metaclass=abc.ABCMeta):
     """Abstract base class for deserialization of Metadata objects."""
 
     @abc.abstractmethod
-    def deserialize(self, raw_data: bytes) -> "Metadata":
+    def deserialize(self, rolename: str, raw_data: bytes) -> "Metadata":
         """Deserialize passed bytes to Metadata object."""
         raise NotImplementedError
 

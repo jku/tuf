@@ -30,11 +30,11 @@ from tuf.api.serialization import (
 class JSONDeserializer(MetadataDeserializer):
     """Provides JSON to Metadata deserialize method."""
 
-    def deserialize(self, raw_data: bytes) -> Metadata:
+    def deserialize(self, rolename: str, raw_data: bytes) -> Metadata:
         """Deserialize utf-8 encoded JSON bytes into Metadata object."""
         try:
             json_dict = json.loads(raw_data.decode("utf-8"))
-            metadata_obj = Metadata.from_dict(json_dict)
+            metadata_obj = Metadata.from_dict(rolename, json_dict)
 
         except Exception as e:  # pylint: disable=broad-except
             raise DeserializationError from e

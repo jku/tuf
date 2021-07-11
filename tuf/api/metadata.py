@@ -18,6 +18,7 @@ available in the class model.
 import abc
 import io
 import logging
+import os.path
 import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -68,19 +69,22 @@ class Metadata:
             i.e. one of Targets, Snapshot, Timestamp or Root.
         signatures: An ordered dictionary of keyids to Signature objects, each
             signing the canonical serialized representation of 'signed'.
+        rolename: Name of the metadata role (e.g. "root")
     """
 
     def __init__(
-        self, signed: "Signed", signatures: "OrderedDict[str, Signature]"
+        self, rolename: str, signed: "Signed", signatures: "OrderedDict[str, Signature]"
     ):
+        self.rolename = rolename
         self.signed = signed
         self.signatures = signatures
 
     @classmethod
-    def from_dict(cls, metadata: Dict[str, Any]) -> "Metadata":
+    def from_dict(cls, rolename: str, metadata: Dict[str, Any]) -> "Metadata":
         """Creates Metadata object from its dict representation.
 
         Arguments:
+            rolename: Name of the metadata role
             metadata: TUF metadata in dict representation.
 
         Raises:
@@ -99,14 +103,16 @@ class Metadata:
 
         if _type == "targets":
             inner_cls: Type[Signed] = Targets
-        elif _type == "snapshot":
+        elif _type == "snapshot" and rolename == "snapshot":
             inner_cls = Snapshot
-        elif _type == "timestamp":
+        elif _type == "timestamp" and rolename == "timestamp":
             inner_cls = Timestamp
-        elif _type == "root":
+        elif _type == "root" and rolename == "root":
             inner_cls = Root
         else:
-            raise ValueError(f'unrecognized metadata type "{_type}"')
+            raise ValueError(
+                f'unrecognized metadata type "{_type}" for role "{rolename}"'
+            )
 
         # Make sure signatures are unique
         signatures: "OrderedDict[str, Signature]" = OrderedDict()
@@ -119,6 +125,7 @@ class Metadata:
             signatures[sig.keyid] = sig
 
         return cls(
+            rolename=rolename,
             signed=inner_cls.from_dict(metadata.pop("signed")),
             signatures=signatures,
         )
@@ -129,17 +136,21 @@ class Metadata:
         filename: str,
         deserializer: Optional[MetadataDeserializer] = None,
         storage_backend: Optional[StorageBackendInterface] = None,
+        rolename: Optional[str] = None,
     ) -> "Metadata":
         """Loads TUF metadata from file storage.
 
         Arguments:
-            filename: The path to read the file from.
+            filename: The path to read the file from. Filename is expected to be of type
+                <rolename>.<ext>: e.g. "targets.json"
             deserializer: A MetadataDeserializer subclass instance that
                 implements the desired wireline format deserialization. Per
                 default a JSONDeserializer is used.
             storage_backend: An object that implements
                 securesystemslib.storage.StorageBackendInterface. Per default
                 a (local) FilesystemBackend is used.
+            rolename: Name of the metadata role. By default rolename is the
+                basename of the filename
 
         Raises:
             securesystemslib.exceptions.StorageError: The file cannot be read.
@@ -153,17 +164,23 @@ class Metadata:
         if storage_backend is None:
             storage_backend = FilesystemBackend()
 
+        if rolename is None:
+            basename = os.path.basename(filename)
+            rolename, ext = os.path.splitext(basename)
+
         with storage_backend.get(filename) as file_obj:
-            return cls.from_bytes(file_obj.read(), deserializer)
+            return cls.from_bytes(rolename, file_obj.read(), deserializer)
 
     @staticmethod
     def from_bytes(
+        rolename: str,
         data: bytes,
         deserializer: Optional[MetadataDeserializer] = None,
     ) -> "Metadata":
         """Loads TUF metadata from raw data.
 
         Arguments:
+            rolename: Name of the metadata role
             data: metadata content as bytes.
             deserializer: Optional; A MetadataDeserializer instance that
                 implements deserialization. Default is JSONDeserializer.
@@ -183,7 +200,7 @@ class Metadata:
 
             deserializer = JSONDeserializer()
 
-        return deserializer.deserialize(data)
+        return deserializer.deserialize(rolename, data)
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns the dict representation of self."""
@@ -271,7 +288,6 @@ class Metadata:
 
     def verify_delegate(
         self,
-        delegated_role: str,
         delegated_metadata: "Metadata",
         signed_serializer: Optional[SignedSerializer] = None,
     ) -> None:
@@ -279,7 +295,6 @@ class Metadata:
         threshold of keys for the delegated role 'delegated_role'.
 
         Args:
-            delegated_role: Name of the delegated role to verify
             delegated_metadata: The Metadata object for the delegated role
             signed_serializer: Optional; serializer used for delegate
                 serialization. Default is CanonicalJSONSerializer.
@@ -291,6 +306,7 @@ class Metadata:
 
         # Find the keys and role in delegator metadata
         role = None
+        delegated_role = delegated_metadata.rolename
         if isinstance(self.signed, Root):
             keys = self.signed.keys
             role = self.signed.roles.get(delegated_role)
